@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/bokwoon95/sqddl/ddl"
-	"github.com/jackc/pgconn"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v5/pgconn"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Register registers a ddl.Driver for Postgres using
