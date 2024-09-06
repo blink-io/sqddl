@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/bokwoon95/sqddl/ddl"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
