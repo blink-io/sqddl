@@ -9,12 +9,12 @@ import (
 // ModelStructs is a slice of ModelStruct.
 type ModelStructs []TableStruct
 
-// ModelStruct represents a table struct.
+// ModelStruct represents a model struct.
 type ModelStruct struct {
 	// Name is the name of the table struct.
 	Name string
 
-	// Fields are the table struct fields.
+	// Fields are the model struct fields.
 	Fields []StructField
 }
 
@@ -29,7 +29,7 @@ type ModelField struct {
 	// NameTag is the value for the "sq" struct tag.
 	NameTag string
 
-	// Modifiers are the parsed modifiers for the "ddl" struct tag.
+	// Modifiers are the parsed modifiers for the "db" struct tag.
 	Modifiers []Modifier
 
 	// tagPos tracks where in the source code the struct tag appeared in. Used
