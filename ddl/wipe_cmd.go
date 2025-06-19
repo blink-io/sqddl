@@ -34,9 +34,10 @@ type WipeCmd struct {
 }
 
 // WipeCommand creates a new WipeCmd with the given arguments. E.g.
-//   sqddl wipe -db <DATABASE_URL> [FLAGS]
 //
-//   WipeCommand("-db", "postgres://user:pass@localhost:5432/sakila")
+//	sqddl wipe -db <DATABASE_URL> [FLAGS]
+//
+//	WipeCommand("-db", "postgres://user:pass@localhost:5432/sakila")
 func WipeCommand(args ...string) (*WipeCmd, error) {
 	var cmd WipeCmd
 	var historyTable string
@@ -124,7 +125,7 @@ func (cmd *WipeCmd) Run() error {
 	}
 
 	// ALTER TABLE DROP CONSTRAINT (Foreign keys). We drop all foreign keys
-	// first before dropping tables so that we don't get tripped by by circular
+	// first before dropping tables so that we don't get tripped by circular
 	// table dependencies later.
 	if cmd.Dialect != DialectSQLite {
 		dbi.ConstraintTypes = []string{FOREIGN_KEY}

@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bokwoon95/sqddl/ddl"
-	"github.com/bokwoon95/sqddl/drivers/ddlmysql"
-	"github.com/bokwoon95/sqddl/drivers/ddloracle"
-	"github.com/bokwoon95/sqddl/drivers/ddlpgx"
-	"github.com/bokwoon95/sqddl/drivers/ddlsqlite3"
-	"github.com/bokwoon95/sqddl/drivers/ddlsqlserver"
+	"github.com/blink-io/sqddl/ddl"
+	"github.com/blink-io/sqddl/drivers/ddlmysql"
+	"github.com/blink-io/sqddl/drivers/ddloracle"
+	"github.com/blink-io/sqddl/drivers/ddlpgx"
+	"github.com/blink-io/sqddl/drivers/ddlsqlite3"
+	"github.com/blink-io/sqddl/drivers/ddlsqlserver"
 )
 
 func init() {

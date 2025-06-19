@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bokwoon95/sqddl/internal/testutil"
+	"github.com/blink-io/sqddl/internal/testutil"
 )
 
 func Test_Catalog_WriteCatalog(t *testing.T) {

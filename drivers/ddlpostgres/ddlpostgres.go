@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/ddl"
+	"github.com/blink-io/sqddl/ddl"
 	"github.com/lib/pq"
 )
 

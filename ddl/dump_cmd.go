@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/internal/pqarray"
+	"github.com/blink-io/sqddl/internal/pqarray"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -56,7 +56,7 @@ type DumpCmd struct {
 	// If DataOnly is true, DumpCmd will only dump table data.
 	DataOnly bool
 
-	// Nullstring specifies the string that is used in CSV to represent NULL.
+	// Nullstring specifies the string used in CSV to represent NULL.
 	// Leave blank to use `\N`.
 	Nullstring string
 
@@ -102,9 +102,9 @@ type DumpCmd struct {
 
 // DumpCommand creates a new DumpCmd with the given arguments. E.g.
 //
-//   sqddl dump -db <DATABASE_URL> [FLAGS]
+//	sqddl dump -db <DATABASE_URL> [FLAGS]
 //
-//   DumpCommand("-db", "postgres://user:pass@localhost:5432/sakila", "-output-dir", "./db")
+//	DumpCommand("-db", "postgres://user:pass@localhost:5432/sakila", "-output-dir", "./db")
 func DumpCommand(args ...string) (*DumpCmd, error) {
 	var cmd DumpCmd
 	var schemas, excludeSchemas, tables, excludeTables string
@@ -1306,11 +1306,11 @@ func writeConstraintDefinition(dialect string, buf *bytes.Buffer, currentSchema 
 			// boundaries, we have to always qualify it with a schema (even if
 			// the schema is the current schema). If not MySQL may do the wrong
 			// thing and assign the wrong schema to an unqualified table name.
-			refschema := constraint.ReferencesSchema
-			if refschema == "" {
-				refschema = currentSchema
+			refSchema := constraint.ReferencesSchema
+			if refSchema == "" {
+				refSchema = currentSchema
 			}
-			referencesTable = QuoteIdentifier(dialect, refschema) + "." + referencesTable
+			referencesTable = QuoteIdentifier(dialect, refSchema) + "." + referencesTable
 		}
 		buf.WriteString(" REFERENCES " + referencesTable + " (")
 		writeColumnNames(dialect, buf, constraint.ReferencesColumns)

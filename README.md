@@ -1,6 +1,6 @@
-[![GoDoc](https://img.shields.io/badge/pkg.go.dev-ddl-blue)](https://pkg.go.dev/github.com/bokwoon95/sqddl/ddl)
-[![tests](https://github.com/bokwoon95/sqddl/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/bokwoon95/sqddl/actions/workflows/tests.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/bokwoon95/sqddl)](https://goreportcard.com/report/github.com/bokwoon95/sqddl)
+[![GoDoc](https://img.shields.io/badge/pkg.go.dev-ddl-blue)](https://pkg.go.dev/github.com/blink-io/sqddl/ddl)
+[![tests](https://github.com/blink-io/sqddl/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/blink-io/sqddl/actions/workflows/tests.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/blink-io/sqddl)](https://goreportcard.com/report/github.com/blink-io/sqddl)
 [![Coverage Status](https://coveralls.io/repos/github/bokwoon95/sqddl/badge.svg?branch=main)](https://coveralls.io/github/bokwoon95/sqddl?branch=main)
 
 # sqddl
@@ -31,17 +31,17 @@ Notable features:
 ## Installation
 
 ```shell
-$ go install -tags=fts5 github.com/bokwoon95/sqddl@latest
+$ go install -tags=fts5 github.com/blink-io/sqddl@latest
 ```
 
 ## Example migrations.
 
 To view what a sample migration directory would look like, click the following links:
 
-- [sqlite\_migrations](https://github.com/bokwoon95/sqddl/tree/main/ddl/sqlite_migrations)
-- [postgres\_migrations](https://github.com/bokwoon95/sqddl/tree/main/ddl/postgres_migrations)
-- [mysql\_migrations](https://github.com/bokwoon95/sqddl/tree/main/ddl/mysql_migrations)
-- [sqlserver\_migrations](https://github.com/bokwoon95/sqddl/tree/main/ddl/sqlserver_migrations)
+- [sqlite\_migrations](https://github.com/blink-io/sqddl/tree/main/ddl/sqlite_migrations)
+- [postgres\_migrations](https://github.com/blink-io/sqddl/tree/main/ddl/postgres_migrations)
+- [mysql\_migrations](https://github.com/blink-io/sqddl/tree/main/ddl/mysql_migrations)
+- [sqlserver\_migrations](https://github.com/blink-io/sqddl/tree/main/ddl/sqlserver_migrations)
 
 ## Subcommands
 
@@ -306,4 +306,4 @@ COMMIT
 
 ## Contributing
 
-See [START\_HERE.md](https://github.com/bokwoon95/sqddl/blob/main/ddl/START_HERE.md).
+See [START\_HERE.md](https://github.com/blink-io/sqddl/blob/main/ddl/START_HERE.md).

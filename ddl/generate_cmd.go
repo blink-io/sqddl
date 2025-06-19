@@ -28,7 +28,7 @@ type GenerateCmd struct {
 	// DirFS is where the Filenames will be sourced from.
 	DirFS fs.FS
 
-	// Filenames specifies the list of files (loaded from the Dir) used to
+	// Filenames specify the list of files (loaded from the Dir) used to
 	// build the DestCatalog. It will be ignored if the DestCatalog is already
 	// non-nil.
 	Filenames []string

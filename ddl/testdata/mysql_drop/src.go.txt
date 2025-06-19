@@ -1,6 +1,6 @@
 package _
 
-import "github.com/bokwoon95/sq"
+import "github.com/blink-io/sq"
 
 type CATEGORY struct {
 	sq.TableStruct

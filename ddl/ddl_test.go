@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bokwoon95/sqddl/internal/testutil"
+	"github.com/blink-io/sqddl/internal/testutil"
 
-	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 //go:embed all:sqlite_migrations testdata csv_testdata

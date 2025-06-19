@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/ddl"
-	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/blink-io/sqddl/ddl"
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 // Register registers a ddl.Driver for SQL Server using
-// github.com/denisenkom/go-mssqldb.
+// github.com/microsoft/go-mssqldb v0.12.3.
 func Register() {
 	ddl.Register(ddl.Driver{
 		Dialect:    ddl.DialectSQLServer,
