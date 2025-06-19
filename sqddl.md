@@ -2,7 +2,7 @@
 
 ## Introduction to sqddl #introduction
 
-Github link: [https://github.com/bokwoon95/sqddl](https://github.com/bokwoon95/sqddl)
+Github link: [https://github.com/blink-io/sqddl](https://github.com/blink-io/sqddl)
 
 sqddl is a zero-configuration database migration tool for Go. It can [generate migrations](#generate) based on a [declarative schema (defined as Go structs)](#table-structs).
 
@@ -28,7 +28,7 @@ Notable features:
 ## Installation #installation
 
 ```shell
-$ go install -tags=fts5 github.com/bokwoon95/sqddl/sqddl@latest
+$ go install -tags=fts5 github.com/blink-io/sqddl/sqddl@latest
 ```
 
 ## Subcommands #subcommands
@@ -357,14 +357,14 @@ migrateCmd := &ddl.MigrateCmd{
 err = migrateCmd.Run()
 ```
 
-Note that ddl library by itself doesn't have [automatic lock timeout retries](#lock-timeout-retries) because the detection of lock timeout errors is driver-specific and the ddl library avoids importing any drivers. That behaviour has to be registered by [importing the following helper packages and calling their Register() function](https://github.com/bokwoon95/sqddl/blob/main/main.go#L18-L23):
+Note that ddl library by itself doesn't have [automatic lock timeout retries](#lock-timeout-retries) because the detection of lock timeout errors is driver-specific and the ddl library avoids importing any drivers. That behaviour has to be registered by [importing the following helper packages and calling their Register() function](https://github.com/blink-io/sqddl/blob/main/main.go#L18-L23):
 
 - ddlsqlite3.Register() if you use [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3).
 - ddlpostgres.Register() if you use [lib/pq](https://github.com/lib/pq).
 - ddlpgx.Register() if you use [jackc/pgx](https://github.com/jackc/pgx).
 - ddlmysql.Register() if you use [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql).
-- ddlsqlserver.Register() if you use [denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb).
-- For any other drivers, please call the ddl.Register() function directly (follow the code template inside [ddlpostgres](https://github.com/bokwoon95/sqddl/blob/main/drivers/ddlpostgres/ddlpostgres.go), [ddlpgx](https://github.com/bokwoon95/sqddl/blob/main/drivers/ddlpgx/ddlpgx.go), [ddlmysql](https://github.com/bokwoon95/sqddl/blob/main/drivers/ddlmysql/ddlmysql.go) or [ddlsqlserver](https://github.com/bokwoon95/sqddl/blob/main/drivers/ddlsqlserver/ddlsqlserver.go)).
+- ddlsqlserver.Register() if you use [microsoft/go-mssqldb](https://github.com/microsoft/go-mssqldb).
+- For any other drivers, please call the ddl.Register() function directly (follow the code template inside [ddlpostgres](https://github.com/blink-io/sqddl/blob/main/drivers/ddlpostgres/ddlpostgres.go), [ddlpgx](https://github.com/blink-io/sqddl/blob/main/drivers/ddlpgx/ddlpgx.go), [ddlmysql](https://github.com/blink-io/sqddl/blob/main/drivers/ddlmysql/ddlmysql.go) or [ddlsqlserver](https://github.com/blink-io/sqddl/blob/main/drivers/ddlsqlserver/ddlsqlserver.go)).
 
 #### Running migrations from a //go:embed directory on startup #running-embedded-migrations-on-startup
 
@@ -1118,7 +1118,7 @@ type ACTOR struct {
 
 There are 10 available field types that you can use in your [table structs](#table-structs). Each field is associated with a default SQL type which will be used in the CREATE TABLE command if you don't [explicitly mention its type](#type-modifier).
 
-You will need to import the [sq package](https://github.com/bokwoon95/sq) in order to use these fields.
+You will need to import the [sq package](https://github.com/blink-io/sq) in order to use these fields.
 
 <table>
 <tr>

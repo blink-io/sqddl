@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/ddl"
+	"github.com/blink-io/sqddl/ddl"
 	_ "github.com/mattn/go-sqlite3"
 )
 

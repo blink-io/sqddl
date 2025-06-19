@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bokwoon95/sqddl/internal/testutil"
-	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/blink-io/sqddl/internal/testutil"
 	"github.com/go-sql-driver/mysql"
 	"github.com/lib/pq"
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 var (

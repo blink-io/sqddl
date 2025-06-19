@@ -973,7 +973,7 @@ func (dbi *DatabaseIntrospector) GetIndexes() ([]Index, error) {
 		}
 	case DialectMySQL:
 		// We need the version string to distinguish between MySQL and MariaDB.
-		// https://github.com/bokwoon95/sqddl/issues/1
+		// https://github.com/blink-io/sqddl/issues/1
 		filter := dbi.Filter
 		if filter.Version == "" {
 			filter.Version, err = dbi.GetVersion()

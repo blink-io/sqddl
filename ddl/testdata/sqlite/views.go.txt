@@ -1,6 +1,6 @@
 package sakila
 
-import "github.com/bokwoon95/sq"
+import "github.com/blink-io/sq"
 
 type ACTOR_INFO struct {
 	sq.ViewStruct

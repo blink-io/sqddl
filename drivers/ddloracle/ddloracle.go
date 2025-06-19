@@ -3,7 +3,7 @@ package ddloracle
 import (
 	"errors"
 
-	"github.com/bokwoon95/sqddl/ddl"
+	"github.com/blink-io/sqddl/ddl"
 	_ "github.com/sijms/go-ora/v2"
 	"github.com/sijms/go-ora/v2/network"
 )

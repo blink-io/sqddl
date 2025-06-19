@@ -28,7 +28,7 @@ type GenerateCmd struct {
 	// DirFS is where the Filenames will be sourced from.
 	DirFS fs.FS
 
-	// Filenames specifies the list of files (loaded from the Dir) used to
+	// Filenames specify the list of files (loaded from the Dir) used to
 	// build the DestCatalog. It will be ignored if the DestCatalog is already
 	// non-nil.
 	Filenames []string
@@ -71,13 +71,13 @@ type GenerateCmd struct {
 
 // GenerateCommand creates a new GenerateCmd with the given arguments. E.g.
 //
-//   sqddl generate -src <SRC_SCHEMA> -dest <DEST_SCHEMA> [FLAGS]
+//	sqddl generate -src <SRC_SCHEMA> -dest <DEST_SCHEMA> [FLAGS]
 //
-//   GenerateCommand(
-//     "-src", "postgres://user:pass@localhost:5432/mydatabase",
-//     "-dest", "tables/tables.go",
-//     "-output-dir", "./migrations",
-//   )
+//	GenerateCommand(
+//	  "-src", "postgres://user:pass@localhost:5432/mydatabase",
+//	  "-dest", "tables/tables.go",
+//	  "-output-dir", "./migrations",
+//	)
 func GenerateCommand(args ...string) (*GenerateCmd, error) {
 	var cmd GenerateCmd
 	var db, src, dest string

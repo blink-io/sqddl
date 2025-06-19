@@ -2,58 +2,58 @@ This document describes how the codebase is organized. It is meant for people wh
 
 Files are written in such a way that **each successive file in the list below only depends on files that come before it**. This self-enforced restriction makes deep architectural changes trivial because you can essentially blow away the entire codebase and rewrite it from scratch file-by-file, complete with working tests every step of the way. Please adhere to this file order when submitting pull requests.
 
-- [**ddl.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/ddl.go)
+- [**ddl.go**](https://github.com/blink-io/sqddl/blob/main/ddl/ddl.go)
     - Core data types: Catalog, Schema, Enum, Domain, Routine, View, Table, Column, Constraint, Index and Trigger.
     - Misc utility functions.
-- [**catalog_cache.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/catalog_cache.go)
+- [**catalog_cache.go**](https://github.com/blink-io/sqddl/blob/main/ddl/catalog_cache.go)
     - CatalogCache is used for querying and modifying a Catalog's nested objects.
-- [**database_introspector.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/database_introspector.go)
+- [**database_introspector.go**](https://github.com/blink-io/sqddl/blob/main/ddl/database_introspector.go)
     - DatabaseIntrospector is used to introspect a database.
-- [**batch_insert.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/batch_insert.go)
+- [**batch_insert.go**](https://github.com/blink-io/sqddl/blob/main/ddl/batch_insert.go)
     - BatchInsert is used to insert data into a table in batches.
-- [**load_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/load_cmd.go)
+- [**load_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/load_cmd.go)
     - [`sqddl load`](https://bokwoon.neocities.org/sqddl.html#load)
-- [**wipe_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/wipe_cmd.go)
+- [**wipe_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/wipe_cmd.go)
     - [`sqddl wipe`](https://bokwoon.neocities.org/sqddl.html#wipe)
-- [**touch_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/touch_cmd.go)
+- [**touch_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/touch_cmd.go)
     - [`sqddl touch`](https://bokwoon.neocities.org/sqddl.html#touch)
-- [**migrate_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/migrate_cmd.go)
+- [**migrate_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/migrate_cmd.go)
     - [`sqddl migrate`](https://bokwoon.neocities.org/sqddl.html#migrate)
-- [**ls_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/ls_cmd.go)
+- [**ls_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/ls_cmd.go)
     - [`sqddl ls`](https://bokwoon.neocities.org/sqddl.html#ls)
-- [**rm_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/rm_cmd.go)
+- [**rm_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/rm_cmd.go)
     - [`sqddl rm`](https://bokwoon.neocities.org/sqddl.html#rm)
-- [**mv_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/mv_cmd.go)
+- [**mv_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/mv_cmd.go)
     - [`sqddl mv`](https://bokwoon.neocities.org/sqddl.html#mv)
-- [**modifier.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/modifier.go)
+- [**modifier.go**](https://github.com/blink-io/sqddl/blob/main/ddl/modifier.go)
     - Modifier represents a modifier in a [ddl struct tag](https://bokwoon.neocities.org/sqddl.html#ddl-struct-tags).
-- [**table_structs.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/table_structs.go)
+- [**table_structs.go**](https://github.com/blink-io/sqddl/blob/main/ddl/table_structs.go)
     - TableStructs are used to represent [table structs](https://bokwoon.neocities.org/sqddl.html#table-structs).
-- [**tables_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/tables_cmd.go)
+- [**tables_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/tables_cmd.go)
     - [`sqddl tables`](https://bokwoon.neocities.org/sqddl.html#tables)
-- [**views_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/views_cmd.go)
+- [**views_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/views_cmd.go)
     - [`sqddl views`](https://bokwoon.neocities.org/sqddl.html#views)
-- [**struct_parser.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/struct_parser.go)
+- [**struct_parser.go**](https://github.com/blink-io/sqddl/blob/main/ddl/struct_parser.go)
     - StructParser is used to parse Go source code into TableStructs.
-- [**sqlite_migration.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/sqlite_migration.go)
+- [**sqlite_migration.go**](https://github.com/blink-io/sqddl/blob/main/ddl/sqlite_migration.go)
     - Code for generating SQLite migrations.
-- [**postgres_migration.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/postgres_migration.go)
+- [**postgres_migration.go**](https://github.com/blink-io/sqddl/blob/main/ddl/postgres_migration.go)
     - Code for generating Postgres migrations.
-- [**mysql_migration.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/mysql_migration.go)
+- [**mysql_migration.go**](https://github.com/blink-io/sqddl/blob/main/ddl/mysql_migration.go)
     - Code for generating MySQL migrations.
-- [**sqlserver_migration.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/sqlserver_migration.go)
+- [**sqlserver_migration.go**](https://github.com/blink-io/sqddl/blob/main/ddl/sqlserver_migration.go)
     - Code for generating SQL Server migrations.
-- [**subsetter.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/subsetter.go)
+- [**subsetter.go**](https://github.com/blink-io/sqddl/blob/main/ddl/subsetter.go)
     - Subsetter is used to dump a referentially-intact subset of the database.
-- [**dump_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/dump_cmd.go)
+- [**dump_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/dump_cmd.go)
     - [`sqddl dump`](https://bokwoon.neocities.org/sqddl.html#dump)
-- [**generate_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/generate_cmd.go)
+- [**generate_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/generate_cmd.go)
     - [`sqddl generate`](https://bokwoon.neocities.org/sqddl.html#generate)
-- [**automigrate_cmd.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/automigrate_cmd.go)
+- [**automigrate_cmd.go**](https://github.com/blink-io/sqddl/blob/main/ddl/automigrate_cmd.go)
     - [`sqddl automigrate`](https://bokwoon.neocities.org/sqddl.html#automigrate)
-- [**integration_test.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/integration_test.go)
+- [**integration_test.go**](https://github.com/blink-io/sqddl/blob/main/ddl/integration_test.go)
     - Tests that interact with a live database i.e. SQLite, Postgres, MySQL and SQL Server.
-- [**golden_files_test.go**](https://github.com/bokwoon95/sqddl/blob/main/ddl/golden_files_test.go)
+- [**golden_files_test.go**](https://github.com/blink-io/sqddl/blob/main/ddl/golden_files_test.go)
     - Code for generating golden files (files which test output is compared against).
 
 ## Testing
@@ -97,9 +97,9 @@ $ go test ./ddl -tags=fts5 -generate-golden-files -postgres $POSTGRES_URL -mysql
 
 ## Documentation
 
-Documentation is contained entirely within [sqddl.md](https://github.com/bokwoon95/sqddl/blob/main/sqddl.md) in the project root directory. You can view the output at [https://bokwoon.neocities.org/sqddl.html](https://bokwoon.neocities.org/sqddl.html). The documentation is regenerated everytime a new commit is pushed to the main branch, so to change the documentation just change sqddl.md and submit a pull request.
+Documentation is contained entirely within [sqddl.md](https://github.com/blink-io/sqddl/blob/main/sqddl.md) in the project root directory. You can view the output at [https://bokwoon.neocities.org/sqddl.html](https://bokwoon.neocities.org/sqddl.html). The documentation is regenerated everytime a new commit is pushed to the main branch, so to change the documentation just change sqddl.md and submit a pull request.
 
-You can preview the output of sqddl.md locally by installing [github.com/bokwoon95/mddocs](https://github.com/bokwoon95/mddocs) and running it with sqddl.md as the argument.
+You can preview the output of sqddl.md locally by installing [github.com/blink-io/mddocs](https://github.com/blink-io/mddocs) and running it with sqddl.md as the argument.
 
 ```shell
 $ go install github/bokwoon95/mddocs@latest

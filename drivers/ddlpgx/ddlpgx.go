@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/ddl"
-	"github.com/jackc/pgconn"
+	"github.com/blink-io/sqddl/ddl"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

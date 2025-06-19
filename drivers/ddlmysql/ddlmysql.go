@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bokwoon95/sqddl/ddl"
+	"github.com/blink-io/sqddl/ddl"
 	"github.com/go-sql-driver/mysql"
 )
 

@@ -156,7 +156,7 @@ func (cmd *ViewsCmd) Run() error {
 		defer file.Close()
 		out = file
 	}
-	_, err = io.WriteString(out, "package "+cmd.PackageName+"\n\nimport \"github.com/bokwoon95/sq\"\n\n")
+	_, err = io.WriteString(out, "package "+cmd.PackageName+"\n\nimport \"github.com/blink-io/sq\"\n\n")
 	if err != nil {
 		return err
 	}
