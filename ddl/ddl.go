@@ -383,7 +383,7 @@ type Column struct {
 	OnUpdateCurrentTimestamp bool `json:",omitempty"`
 
 	// IsGenerated indicates if the column is a generated column. It does not
-	// have be set to true if the GeneratedExpr field is already non-empty.
+	// have been set to true if the GeneratedExpr field is already non-empty.
 	IsGenerated bool `json:",omitempty"`
 
 	// GeneratedExpr holds the generated expression of the column if the column
@@ -421,7 +421,7 @@ type Constraint struct {
 	// KEY", "UNIQUE", "FOREIGN KEY", "CHECK", "EXCLUDE".
 	ConstraintType string `json:",omitempty"`
 
-	// Columns holds the name of the columns participating in the constraint.
+	// Columns hold the name of the columns participating in the constraint.
 	Columns []string `json:",omitempty"`
 
 	// ReferencesSchema stores the name of the referenced schema if the constraint
@@ -1089,8 +1089,8 @@ type VersionNums []int
 // numbers. You can provide just one number (the major version) or multiple
 // numbers (the major, minor and patch versions). E.g.
 //
-//   version.LowerThan(12)   # $version < 12
-//   version.LowerThan(8, 5) # $version < 8.5
+//	version.LowerThan(12)   # $version < 12
+//	version.LowerThan(8, 5) # $version < 8.5
 func (v VersionNums) LowerThan(nums ...int) bool {
 	for i, versionNum := range v {
 		if len(nums) <= i || versionNum > nums[i] {
@@ -1107,8 +1107,8 @@ func (v VersionNums) LowerThan(nums ...int) bool {
 // given version numbers. You can provide just one number (the major version)
 // or multiple numbers (the major, minor and patch versions). E.g.
 //
-//   version.GreaterOrEqualTo(12)   # $version >= 12
-//   version.GreaterOrEqualTo(8, 5) # $version >= 8.5
+//	version.GreaterOrEqualTo(12)   # $version >= 12
+//	version.GreaterOrEqualTo(8, 5) # $version >= 8.5
 func (v VersionNums) GreaterOrEqualTo(nums ...int) bool {
 	return !v.LowerThan(nums...)
 }

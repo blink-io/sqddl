@@ -1,5 +1,7 @@
 package ddl
 
 func closeQuietly(closer func() error) {
-	_ = closer()
+	if closer != nil {
+		_ = closer()
+	}
 }
