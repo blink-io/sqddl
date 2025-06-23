@@ -123,10 +123,10 @@ func (cmd *ModelsCmd) Run() error {
 		cmd.HistoryTable = "sqddl_history"
 	}
 	if cmd.db != "" {
-		defer cmd.DB.Close()
+		defer closeQuietly(cmd.DB.Close)
 	}
 
-	var tableStructs TableStructs
+	var modelStructs ModelStructs
 	var catalog Catalog
 	dbi := &DatabaseIntrospector{
 		Dialect: cmd.Dialect,
@@ -143,16 +143,16 @@ func (cmd *ModelsCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	err = tableStructs.ReadCatalog(&catalog)
+	err = modelStructs.ReadCatalog(&catalog)
 	if err != nil {
 		return err
 	}
 	if cmd.SchemaQualifiedStructs {
-		for i := range tableStructs {
-			tableStruct := &tableStructs[i]
-			tableName := strings.ToLower(tableStruct.Name)
-			if tableStruct.Fields[0].NameTag != "" {
-				tableName = tableStruct.Fields[0].NameTag
+		for i := range modelStructs {
+			modelStruct := &modelStructs[i]
+			tableName := strings.ToLower(modelStruct.Name)
+			if modelStruct.Fields[0].NameTag != "" {
+				tableName = modelStruct.Fields[0].NameTag
 			}
 			tableSchema, tableName, _ := strings.Cut(tableName, ".")
 			if tableName == "" {
@@ -162,12 +162,12 @@ func (cmd *ModelsCmd) Run() error {
 				tableSchema = catalog.CurrentSchema
 			}
 			if tableSchema != "" {
-				tableStruct.Name = strings.ToUpper(strings.ReplaceAll(tableSchema+"_"+tableName, " ", "_"))
-				tableStruct.Fields[0].NameTag = tableSchema + "." + tableName
+				modelStruct.Name = strings.ToUpper(strings.ReplaceAll(tableSchema+"_"+tableName, " ", "_"))
+				modelStruct.Fields[0].NameTag = tableSchema + "." + tableName
 			}
 		}
 	}
-	text, err := tableStructs.MarshalText()
+	text, err := modelStructs.MarshalText()
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (cmd *ModelsCmd) Run() error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer closeQuietly(file.Close)
 		out = file
 	}
 	_, err = io.WriteString(out, "package "+cmd.PackageName+"\n\nimport \"github.com/blink-io/sq\"\n\n")

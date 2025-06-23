@@ -62,30 +62,30 @@ type BatchInsert struct {
 //
 // Here is a basic example:
 //
-//   bi := &BatchInsert{
-//       Dialect:         "postgres",
-//       TableName:       "actors",
-//       Columns:         []string{"actor_id", "first_name", "last_name"},
-//       KeyColumns:      []string{"actor_id"},
-//       IdentityColumns: []string{"actor_id"},
-//   }
-//   actors := []Actor{
-//       {ActorID: 1, FirstName: "PENELOPE", LastName: "GUINESS"},
-//       {ActorID: 2, FirstName: "NICK", LastName: "WAHLBERG"},
-//       {ActorID: 3, FirstName: "ED", LastName: "CHASE"},
-//   }
-//   i := 0
-//   _, err := bi.ExecContext(ctx, db, func(row []any) error {
-//       if i >= len(actors) {
-//           return io.EOF
-//       }
-//       actor := actors[i]
-//       row[0] = actor.ActorID
-//       row[1] = actor.FirstName
-//       row[2] = actor.LastName
-//       i++
-//       return nil
-//   })
+//	bi := &BatchInsert{
+//	    Dialect:         "postgres",
+//	    TableName:       "actors",
+//	    Columns:         []string{"actor_id", "first_name", "last_name"},
+//	    KeyColumns:      []string{"actor_id"},
+//	    IdentityColumns: []string{"actor_id"},
+//	}
+//	actors := []Actor{
+//	    {ActorID: 1, FirstName: "PENELOPE", LastName: "GUINESS"},
+//	    {ActorID: 2, FirstName: "NICK", LastName: "WAHLBERG"},
+//	    {ActorID: 3, FirstName: "ED", LastName: "CHASE"},
+//	}
+//	i := 0
+//	_, err := bi.ExecContext(ctx, db, func(row []any) error {
+//	    if i >= len(actors) {
+//	        return io.EOF
+//	    }
+//	    actor := actors[i]
+//	    row[0] = actor.ActorID
+//	    row[1] = actor.FirstName
+//	    row[2] = actor.LastName
+//	    i++
+//	    return nil
+//	})
 func (bi *BatchInsert) ExecContext(ctx context.Context, db DB, next func([]any) error) (rowsAffected int64, err error) {
 	if db == nil {
 		return 0, fmt.Errorf("db is nil")

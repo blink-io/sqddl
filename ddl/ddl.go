@@ -1089,8 +1089,8 @@ type VersionNums []int
 // numbers. You can provide just one number (the major version) or multiple
 // numbers (the major, minor and patch versions). E.g.
 //
-//   version.LowerThan(12)   # $version < 12
-//   version.LowerThan(8, 5) # $version < 8.5
+//	version.LowerThan(12)   # $version < 12
+//	version.LowerThan(8, 5) # $version < 8.5
 func (v VersionNums) LowerThan(nums ...int) bool {
 	for i, versionNum := range v {
 		if len(nums) <= i || versionNum > nums[i] {
@@ -1107,8 +1107,8 @@ func (v VersionNums) LowerThan(nums ...int) bool {
 // given version numbers. You can provide just one number (the major version)
 // or multiple numbers (the major, minor and patch versions). E.g.
 //
-//   version.GreaterOrEqualTo(12)   # $version >= 12
-//   version.GreaterOrEqualTo(8, 5) # $version >= 8.5
+//	version.GreaterOrEqualTo(12)   # $version >= 12
+//	version.GreaterOrEqualTo(8, 5) # $version >= 8.5
 func (v VersionNums) GreaterOrEqualTo(nums ...int) bool {
 	return !v.LowerThan(nums...)
 }

@@ -47,14 +47,14 @@ type TouchCmd struct {
 
 // TouchCommand creates a new TouchCmd from the given arguments.
 //
-//   sqddl touch -db <DATABASE_URL> -dir <MIGRATION_DIR> [FILENAMES...]
+//	sqddl touch -db <DATABASE_URL> -dir <MIGRATION_DIR> [FILENAMES...]
 //
-//   TouchCommand(
-//       "-db", "postgres://user:pass@localhost:5432/sakila",
-//       "-dir", "./migrations",
-//       "02_sakila.sql",
-//       "04_extras.sql",
-//   )
+//	TouchCommand(
+//	    "-db", "postgres://user:pass@localhost:5432/sakila",
+//	    "-dir", "./migrations",
+//	    "02_sakila.sql",
+//	    "04_extras.sql",
+//	)
 func TouchCommand(args ...string) (*TouchCmd, error) {
 	var cmd TouchCmd
 	var dir string

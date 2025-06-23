@@ -136,6 +136,15 @@ func main() {
 		if err != nil {
 			exit(subcmd, err)
 		}
+	case "models":
+		modelsCmd, err := ddl.ModelsCommand(args...)
+		if err != nil {
+			exit(subcmd, err)
+		}
+		err = modelsCmd.Run()
+		if err != nil {
+			exit(subcmd, err)
+		}
 	case "views":
 		viewsCmd, err := ddl.ViewsCommand(args...)
 		if err != nil {

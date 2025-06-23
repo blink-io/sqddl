@@ -84,19 +84,20 @@ type LoadCmd struct {
 }
 
 // LoadCommand creates a new LoadCmd with the given arguments. E.g.
-//   sqddl load -db <DATABASE_URL> [FLAGS] [FILENAMES...]
 //
-//   LoadCommand(
-//       "-db", "postgres://user:pass@localhost:5432/sakila",
-//       "./db/schema.sql",
-//       "./db/actor.csv",
-//       "./db/language.csv",
-//       "./db/indexes.sql",
-//       "./db/constraints.sql",
-//   )
-//   LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db")
-//   LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db/sakila.zip")
-//   LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db/sakila.tgz")
+//	sqddl load -db <DATABASE_URL> [FLAGS] [FILENAMES...]
+//
+//	LoadCommand(
+//	    "-db", "postgres://user:pass@localhost:5432/sakila",
+//	    "./db/schema.sql",
+//	    "./db/actor.csv",
+//	    "./db/language.csv",
+//	    "./db/indexes.sql",
+//	    "./db/constraints.sql",
+//	)
+//	LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db")
+//	LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db/sakila.zip")
+//	LoadCommand("-db", "postgres://user:pass@localhost:5432/sakila", "./db/sakila.tgz")
 func LoadCommand(args ...string) (*LoadCmd, error) {
 	var cmd LoadCmd
 	var dir string
