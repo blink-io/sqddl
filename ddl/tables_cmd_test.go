@@ -18,7 +18,7 @@ func TestTablesCmd(t *testing.T) {
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
-	defer db.Close()
+	defer closeQuietly(db.Close)
 
 	migrateCmd, err := MigrateCommand("-db", dsn, "-dir", "sqlite_migrations")
 	if err != nil {
@@ -26,7 +26,7 @@ func TestTablesCmd(t *testing.T) {
 	}
 	migrateCmd.Stderr = io.Discard
 	migrateCmd.db = "" // Keep database open after running command.
-	defer migrateCmd.DB.Close()
+	defer closeQuietly(migrateCmd.DB.Close)
 	err = migrateCmd.Run()
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
@@ -38,7 +38,7 @@ func TestTablesCmd(t *testing.T) {
 		t.Fatal(testutil.Callers(), err)
 	}
 	tablesCmd.Stdout = buf
-	tablesCmd.db = "" // Keep database open after running command.
+	tablesCmd.db = "" // Keep the database open after running command.
 	defer closeQuietly(tablesCmd.DB.Close)
 	err = tablesCmd.Run()
 	if err != nil {

@@ -1,0 +1,166 @@
+package sakila
+
+type Actor struct {
+	ActorId          int64
+	FirstName        string
+	LastName         string
+	FullName         string
+	FullNameReversed string
+	LastUpdate       time.Time
+}
+
+type Address struct {
+	AddressId  int64
+	Address    string
+	Address2   string
+	District   string
+	CityId     int64
+	PostalCode string
+	Phone      string
+	LastUpdate time.Time
+}
+
+type Category struct {
+	CategoryId int64
+	Name       string
+	LastUpdate time.Time
+}
+
+type City struct {
+	CityId     int64
+	City       string
+	CountryId  int64
+	LastUpdate time.Time
+}
+
+type Country struct {
+	CountryId  int64
+	Country    string
+	LastUpdate time.Time
+}
+
+type Customer struct {
+	CustomerId int64
+	StoreId    int64
+	FirstName  string
+	LastName   string
+	Email      string
+	AddressId  int64
+	Active     int64
+	CreateDate time.Time
+	LastUpdate time.Time
+}
+
+type Department struct {
+	DepartmentId [16]byte
+	Name         string
+}
+
+type Employee struct {
+	EmployeeId [16]byte
+	Name       string
+	Title      string
+	ManagerId  [16]byte
+}
+
+type EmployeeDepartment struct {
+	EmployeeId   [16]byte
+	DepartmentId [16]byte
+}
+
+type Film struct {
+	FilmId             int64
+	Title              string
+	Description        string
+	ReleaseYear        int64
+	LanguageId         int64
+	OriginalLanguageId int64
+	RentalDuration     int64
+	RentalRate         float64
+	Length             int64
+	ReplacementCost    float64
+	Rating             string
+	SpecialFeatures    map[string]any
+	LastUpdate         time.Time
+}
+
+type FilmActor struct {
+	ActorId    int64
+	FilmId     int64
+	LastUpdate time.Time
+}
+
+type FilmCategory struct {
+	FilmId     int64
+	CategoryId int64
+	LastUpdate time.Time
+}
+
+type FilmText struct {
+	Title       any
+	Description any
+	FilmText    any
+	Rank        any
+}
+
+type Inventory struct {
+	InventoryId int64
+	FilmId      int64
+	StoreId     int64
+	LastUpdate  time.Time
+}
+
+type Language struct {
+	LanguageId int64
+	Name       string
+	LastUpdate time.Time
+}
+
+type Payment struct {
+	PaymentId   int64
+	CustomerId  int64
+	StaffId     int64
+	RentalId    int64
+	Amount      float64
+	PaymentDate time.Time
+	LastUpdate  time.Time
+}
+
+type Rental struct {
+	RentalId    int64
+	RentalDate  time.Time
+	InventoryId int64
+	CustomerId  int64
+	ReturnDate  time.Time
+	StaffId     int64
+	LastUpdate  time.Time
+}
+
+type Staff struct {
+	StaffId    int64
+	FirstName  string
+	LastName   string
+	AddressId  int64
+	Picture    []byte
+	Email      string
+	StoreId    int64
+	Active     int64
+	Username   string
+	Password   string
+	LastUpdate time.Time
+}
+
+type Store struct {
+	StoreId        int64
+	ManagerStaffId int64
+	AddressId      int64
+	LastUpdate     time.Time
+}
+
+type Task struct {
+	TaskId       [16]byte
+	EmployeeId   [16]byte
+	DepartmentId [16]byte
+	Task         string
+	Data         map[string]any
+}

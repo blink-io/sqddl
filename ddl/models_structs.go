@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"go/token"
+	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/huandu/xstrings"
 )
 
 const (
@@ -13,7 +16,11 @@ const (
 )
 
 // ModelStructs is a slice of ModelStruct.
-type ModelStructs []ModelStruct
+type ModelStructs struct {
+	Models []ModelStruct
+
+	HasTimeType bool
+}
 
 // ModelStruct represents a model struct.
 type ModelStruct struct {
@@ -48,8 +55,7 @@ type ModelField struct {
 // may narrow down the list of tables by filling in the Schemas,
 // ExcludeSchemas, Tables and ExcludeTables fields of the Filter struct. The
 // Filter.ObjectTypes field will always be set to []string{"TABLES"}.
-func NewModelStructs(dialect string, db *sql.DB, filter Filter) (ModelStructs, error) {
-	var modelStructs ModelStructs
+func NewModelStructs(dialect string, db *sql.DB, filter Filter) (*ModelStructs, error) {
 	var catalog Catalog
 	dbi := &DatabaseIntrospector{
 		Filter:  filter,
@@ -57,6 +63,7 @@ func NewModelStructs(dialect string, db *sql.DB, filter Filter) (ModelStructs, e
 		DB:      db,
 	}
 	dbi.ObjectTypes = []string{"TABLES"}
+	modelStructs := new(ModelStructs)
 	err := dbi.WriteCatalog(&catalog)
 	if err != nil {
 		return nil, err
@@ -79,18 +86,6 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				Name:   strings.ToUpper(strings.ReplaceAll(table.TableName, " ", "_")),
 				Fields: make([]StructField, 0, len(table.Columns)+1),
 			}
-			/* modelStruct.Fields = append(modelStruct.Fields, StructField{Type: "sq.TableStruct"})
-			firstField := &modelStruct.Fields[0]
-			if (table.TableSchema != "" && table.TableSchema != catalog.CurrentSchema) || needsQuoting(table.TableName) {
-				if table.TableSchema != "" {
-					firstField.NameTag = table.TableSchema + "." + table.TableName
-				} else {
-					firstField.NameTag = table.TableName
-				}
-			}
-			if catalog.Dialect == DialectSQLite && isVirtualTable(&table) {
-				firstField.Modifiers = append(firstField.Modifiers, Modifier{Name: "virtual"})
-			} */
 			constraintModifierList := make([]*Modifier, 0, len(table.Constraints))
 			indexModifierList := make([]*Modifier, 0, len(table.Indexes))
 			var primarykeyModifier *Modifier
@@ -190,8 +185,12 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 					continue
 				}
 				structField := StructField{
-					Name: strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
-					Type: getFieldType(catalog.Dialect, &table.Columns[i]),
+					Name:   strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
+					Type:   getFieldType(catalog.Dialect, &table.Columns[i]),
+					GoType: getFieldGoType(catalog.Dialect, &table.Columns[i]),
+				}
+				if s.HasTimeType == false && structField.GoType == "time.Time" {
+					s.HasTimeType = true
 				}
 				if needsQuoting(column.ColumnName) {
 					structField.NameTag = column.ColumnName
@@ -377,7 +376,7 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 					Modifiers: Modifiers{*indexModifier},
 				})
 			}
-			*s = append(*s, modelStruct)
+			s.Models = append(s.Models, modelStruct)
 		}
 	}
 	return nil
@@ -388,10 +387,13 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 	buf := bufpool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufpool.Put(buf)
-	for _, moodelStruct := range *s {
+	if s.HasTimeType {
+		buf.WriteString("import \"time\"\n\n")
+	}
+	for _, modelStruct := range s.Models {
 		hasColumn := false
-		for i := len(moodelStruct.Fields) - 1; i >= 0; i-- {
-			if moodelStruct.Fields[i].Name != "" && moodelStruct.Fields[i].Name != "_" {
+		for i := len(modelStruct.Fields) - 1; i >= 0; i-- {
+			if modelStruct.Fields[i].Name != "" && modelStruct.Fields[i].Name != "_" {
 				hasColumn = true
 				break
 			}
@@ -402,15 +404,13 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		if buf.Len() > 0 {
 			buf.WriteString("\n")
 		}
-		buf.WriteString("type " + moodelStruct.Name + " struct {")
-		for _, structField := range moodelStruct.Fields {
-			if structField.Name != "" {
-				buf.WriteString("\n\t" + structField.Name + " " + structField.Type)
-			} else {
-				buf.WriteString("\n\t" + structField.Type)
+		buf.WriteString("type " + normalizeStructName(modelStruct.Name) + " struct {")
+		for _, structField := range modelStruct.Fields {
+			if structField.Name == "_" {
+				continue
 			}
-			ddlTag := Modifiers(structField.Modifiers).String()
-			if structField.NameTag == "" && ddlTag == "" {
+			buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " " + structField.GoType)
+			if structField.NameTag == "" {
 				continue
 			}
 			buf.WriteString(" `")
@@ -422,14 +422,6 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				written = true
 				buf.WriteString(defaultModelTag + `:` + strconv.Quote(structField.NameTag))
 			}
-			// We don't need ddl tag for models
-			//if ddlTag != "" {
-			//	if written {
-			//		buf.WriteString(" ")
-			//	}
-			//	written = true
-			//	buf.WriteString(`ddl:` + strconv.Quote(ddlTag))
-			//}
 			buf.WriteString("`")
 		}
 		buf.WriteString("\n}\n")
@@ -439,35 +431,20 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 	return b, nil
 }
 
-func getModelType(dialect string, column *Column) (fieldType string) {
-	if column.IsEnum {
-		return "sq.EnumField"
+func normalizeStructName(name string) string {
+	return xstrings.ToPascalCase(name)
+}
+
+func normalizeFieldName(name string) string {
+	rr, err := regexp.Compile("_([A-Z])*ID$")
+	if err == nil {
+		if rr.MatchString(name) {
+			if i := strings.LastIndex(name, "_"); i > 0 {
+				s1 := name[:i]
+				s2 := name[i+1:]
+				return xstrings.ToCamelCase(s1) + s2
+			}
+		}
 	}
-	if strings.HasSuffix(column.ColumnType, "[]") {
-		return "sq.ArrayField"
-	}
-	normalizedType, arg1, _ := normalizeColumnType(dialect, column.ColumnType)
-	if normalizedType == "TINYINT" && arg1 == "1" {
-		return "sq.BooleanField"
-	}
-	if normalizedType == "BINARY" && arg1 == "16" {
-		return "sq.UUIDField"
-	}
-	switch normalizedType {
-	case "BYTEA", "BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB", "VARBIT":
-		return "sq.BinaryField"
-	case "BOOLEAN", "BIT":
-		return "sq.BooleanField"
-	case "JSON", "JSONB":
-		return "sq.JSONField"
-	case "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT", "NUMERIC", "FLOAT", "REAL", "DOUBLE PRECISION":
-		return "sq.NumberField"
-	case "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "VARCHAR", "NVARCHAR":
-		return "sq.StringField"
-	case "DATE", "TIME", "TIMETZ", "DATETIME", "DATETIME2", "SMALLDATETIME", "DATETIMEOFFSET", "TIMESTAMP", "TIMESTAMPTZ":
-		return "sq.TimeField"
-	case "UUID", "UNIQUEIDENTIFIER":
-		return "sq.UUIDField"
-	}
-	return "sq.AnyField"
+	return xstrings.ToCamelCase(name)
 }

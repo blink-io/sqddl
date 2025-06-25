@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go/token"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -18,7 +19,11 @@ const (
 )
 
 // TableStructs is a slice of TableStructs.
-type TableStructs []TableStruct
+type TableStructs struct {
+	Tables []TableStruct
+
+	HasTimeType bool
+}
 
 // TableStruct represents a table struct.
 type TableStruct struct {
@@ -27,6 +32,9 @@ type TableStruct struct {
 
 	// Fields are the table struct fields.
 	Fields []StructField
+
+	// PKFields are the table struct fields for primary keys.
+	PKFields []StructField
 }
 
 // StructField represents a struct field within a table struct.
@@ -36,6 +44,9 @@ type StructField struct {
 
 	// Type is the type of the struct field.
 	Type string
+
+	// GoType is the Go type of the struct field.
+	GoType string
 
 	// NameTag is the value for the "sq" struct tag.
 	NameTag string
@@ -53,8 +64,7 @@ type StructField struct {
 // may narrow down the list of tables by filling in the Schemas,
 // ExcludeSchemas, Tables and ExcludeTables fields of the Filter struct. The
 // Filter.ObjectTypes field will always be set to []string{"TABLES"}.
-func NewTableStructs(dialect string, db *sql.DB, filter Filter) (TableStructs, error) {
-	var tableStructs TableStructs
+func NewTableStructs(dialect string, db *sql.DB, filter Filter) (*TableStructs, error) {
 	var catalog Catalog
 	dbi := &DatabaseIntrospector{
 		Filter:  filter,
@@ -66,6 +76,7 @@ func NewTableStructs(dialect string, db *sql.DB, filter Filter) (TableStructs, e
 	if err != nil {
 		return nil, err
 	}
+	tableStructs := new(TableStructs)
 	err = tableStructs.ReadCatalog(&catalog)
 	if err != nil {
 		return nil, err
@@ -101,11 +112,12 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 			}
 			constraintModifierList := make([]*Modifier, 0, len(table.Constraints))
 			indexModifierList := make([]*Modifier, 0, len(table.Indexes))
-			var primarykeyModifier *Modifier
+			var primaryKeyModifier *Modifier
 			uniqueModifiers := make(map[string]*Modifier)
 			foreignkeyModifiers := make(map[string]*Modifier)
 			indexModifiers := make(map[string]*Modifier)
 			addedModifier := make(map[*Modifier]bool)
+			var primaryKeyColumns []string
 			for _, constraint := range table.Constraints {
 				if constraint.Ignore {
 					continue
@@ -115,7 +127,8 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 				switch constraint.ConstraintType {
 				case PRIMARY_KEY:
 					m.Name = primaryKeyName
-					primarykeyModifier = m
+					primaryKeyModifier = m
+					primaryKeyColumns = append(primaryKeyColumns, constraint.Columns...)
 				case UNIQUE:
 					m.Name = uniqueName
 					uniqueModifiers[columnNames] = m
@@ -198,8 +211,9 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					continue
 				}
 				structField := StructField{
-					Name: strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
-					Type: getFieldType(catalog.Dialect, &table.Columns[i]),
+					Name:   strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
+					Type:   getFieldType(catalog.Dialect, &table.Columns[i]),
+					GoType: getFieldGoType(catalog.Dialect, &table.Columns[i]),
 				}
 				if needsQuoting(column.ColumnName) {
 					structField.NameTag = column.ColumnName
@@ -279,8 +293,8 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "type", RawValue: column.DomainName})
 				} else if column.ColumnType != "" && column.ColumnType != defaultColumnType {
 					isSQLiteRowid := catalog.Dialect == DialectSQLite &&
-						primarykeyModifier != nil &&
-						primarykeyModifier.Value == column.ColumnName &&
+						primaryKeyModifier != nil &&
+						primaryKeyModifier.Value == column.ColumnName &&
 						strings.EqualFold(column.ColumnType, "INTEGER")
 					if !isSQLiteRowid {
 						structField.Modifiers = append(structField.Modifiers, Modifier{Name: "type", RawValue: column.ColumnType})
@@ -291,9 +305,9 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "notnull"})
 				}
 				// primarykey
-				if primarykeyModifier != nil && primarykeyModifier.Value == column.ColumnName {
-					addedModifier[primarykeyModifier] = true
-					structField.Modifiers = append(structField.Modifiers, *primarykeyModifier)
+				if primaryKeyModifier != nil && primaryKeyModifier.Value == column.ColumnName {
+					addedModifier[primaryKeyModifier] = true
+					structField.Modifiers = append(structField.Modifiers, *primaryKeyModifier)
 					structField.Modifiers[len(structField.Modifiers)-1].Value = ""
 				}
 				// unique
@@ -360,11 +374,20 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "generated"})
 				}
 				tableStruct.Fields = append(tableStruct.Fields, structField)
+
+				// Add fields for primary keys
+				if slices.Contains(primaryKeyColumns, column.ColumnName) {
+					tableStruct.PKFields = append(tableStruct.PKFields, structField)
+
+					if s.HasTimeType == false && structField.GoType == "time.Time" {
+						s.HasTimeType = true
+					}
+				}
 			}
 
-			if primarykeyModifier != nil && !addedModifier[primarykeyModifier] {
-				addedModifier[primarykeyModifier] = true
-				tableStruct.Fields[0].Modifiers = Modifiers{*primarykeyModifier}
+			if primaryKeyModifier != nil && !addedModifier[primaryKeyModifier] {
+				addedModifier[primaryKeyModifier] = true
+				tableStruct.Fields[0].Modifiers = Modifiers{*primaryKeyModifier}
 			}
 			for _, constraintModifier := range constraintModifierList {
 				if addedModifier[constraintModifier] {
@@ -386,7 +409,8 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					Modifiers: Modifiers{*indexModifier},
 				})
 			}
-			*s = append(*s, tableStruct)
+
+			s.Tables = append(s.Tables, tableStruct)
 		}
 	}
 	return nil
@@ -397,8 +421,10 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 	buf := bufpool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufpool.Put(buf)
-	for _, tableStruct := range *s {
-		var primaryKeyFields []*StructField = nil
+	if s.HasTimeType {
+		buf.WriteString("import \"time\"\n\n")
+	}
+	for _, tableStruct := range s.Tables {
 		hasColumn := false
 		for i := len(tableStruct.Fields) - 1; i >= 0; i-- {
 			if tableStruct.Fields[i].Name != "" && tableStruct.Fields[i].Name != "_" {
@@ -443,31 +469,46 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 		}
 		buf.WriteString("\n}\n")
 
-		// sq.TableStruct `ddl:"primarykey=iid,sid"`
-		// ID sq.NumberField `ddl:"type=bigint notnull primarykey default=nextval('arrays_id_seq'::regclass)"`
-		// NO primary key field
-		var enablePrimaryKeyFunc = false
-		if enablePrimaryKeyFunc {
-			if len(primaryKeyFields) > 0 {
-				// PrimaryKeys() example:
-				//func (t Table) PrimaryKeys() sq.RowValue {
-				//	return sq.RowValue{t.IID, t.SID}
-				//}
-				buf.WriteString(`func (t ` + tableStruct.Name + `) PrimaryKeys() sq.RowValue {`)
-				//for _, structModifier := range primaryKeyField.Modifiers {
-				//	// TODO
-				//	buf.WriteString(`return sq.RowValue{` + `}`)
-				//}
-				buf.WriteString("\n}\n")
-
-				//
-				//func (s Table) PrimaryKeyValues(id1, id2 int64) sq.Predicate {
-				//	return s.PrimaryKeys().In(sq.RowValues{{id1, id2}})
-				//}
-				buf.WriteString(`func (t ` + tableStruct.Name + `) PrimaryKeyValues(` + `) sq.Predicate {`)
-				buf.WriteString(`returns.PrimaryKeys().In(sq.RowValues{{` + `}}`)
-				buf.WriteString("\n}\n")
+		if len(tableStruct.PKFields) > 0 {
+			// PrimaryKeys() example:
+			//func (t Table) PrimaryKeys() sq.RowValue {
+			//	return sq.RowValue{t.IID, t.SID}
+			//}
+			buf.WriteString(`func (t ` + tableStruct.Name + `) PrimaryKeys() sq.RowValue {`)
+			buf.WriteString("\n\treturn sq.RowValue{")
+			for idx, pkField := range tableStruct.PKFields {
+				if idx > 0 {
+					buf.WriteString(",t." + pkField.Name)
+				} else {
+					buf.WriteString("t." + pkField.Name)
+				}
 			}
+			buf.WriteString("}")
+			buf.WriteString("\n}\n\n")
+
+			//
+			//func (s Table) PrimaryKeyValues(id1, id2 int64) sq.Predicate {
+			//	return s.PrimaryKeys().In(sq.RowValues{{id1, id2}})
+			//}
+			buf.WriteString(`func (t ` + tableStruct.Name + `) PrimaryKeyValues(`)
+			for idx, pkField := range tableStruct.PKFields {
+				if idx > 0 {
+					buf.WriteString(", " + normalizeFieldName(pkField.Name) + " " + pkField.GoType)
+				} else {
+					buf.WriteString(normalizeFieldName(pkField.Name) + " " + pkField.GoType)
+				}
+			}
+			buf.WriteString(`) sq.Predicate {`)
+			buf.WriteString("\n\treturn t.PrimaryKeys().In(sq.RowValues{{")
+			for idx, pkField := range tableStruct.PKFields {
+				if idx > 0 {
+					buf.WriteString(", " + normalizeFieldName(pkField.Name))
+				} else {
+					buf.WriteString(normalizeFieldName(pkField.Name))
+				}
+			}
+			buf.WriteString("}})")
+			buf.WriteString("\n}\n")
 		}
 	}
 
@@ -479,7 +520,7 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 	//	UserDevices: sq.New[USER_DEVICES](""),
 	//}
 	buf.WriteString("type tables struct {")
-	for _, tableStruct := range *s {
+	for _, tableStruct := range s.Tables {
 		buf.WriteString(fmt.Sprintf("\n\t%s %s",
 			xstrings.ToPascalCase(tableStruct.Name),
 			tableStruct.Name),
@@ -488,7 +529,7 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 	buf.WriteString("\n}\n")
 
 	buf.WriteString("var Tables = tables {")
-	for _, tableStruct := range *s {
+	for _, tableStruct := range s.Tables {
 		buf.WriteString(fmt.Sprintf("\n\t%s: sq.New[%s](\"\"),",
 			xstrings.ToPascalCase(tableStruct.Name),
 			tableStruct.Name),
@@ -532,6 +573,56 @@ func getFieldType(dialect string, column *Column) (fieldType string) {
 		return "sq.UUIDField"
 	}
 	return "sq.AnyField"
+}
+
+func getFieldGoType(dialect string, column *Column) (fieldType string) {
+	if column.IsEnum {
+		return "string" //FIXME Maybe will be a bug?
+	}
+	if strings.HasSuffix(column.ColumnType, "[]") {
+		return "[]any"
+	}
+	normalizedType, arg1, _ := normalizeColumnType(dialect, column.ColumnType)
+	if normalizedType == "TINYINT" && arg1 == "1" {
+		return "bool"
+	}
+	if normalizedType == "BINARY" && arg1 == "16" {
+		return "[16]byte"
+	}
+	switch normalizedType {
+	case "BYTEA", "BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB", "VARBIT":
+		return "[]byte"
+	case "BOOLEAN", "BIT":
+		return "bool"
+	case "JSON", "JSONB":
+		return "map[string]any"
+	case "TINYINT":
+		return "int8"
+	case "SMALLINT":
+		return "int16"
+	case "MEDIUMINT": // 24 bytes in MySQL
+		return "int32"
+	case "INT", "INTEGER":
+		if DialectSQLite == dialect {
+			return "int64"
+		} else {
+			return "int32"
+		}
+	case "BIGINT":
+		return "int64"
+	case "NUMERIC", "FLOAT":
+		return "float32"
+	case "REAL", "DOUBLE PRECISION":
+		return "float64"
+	case "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "VARCHAR", "NVARCHAR":
+		return "string"
+	case "DATE", "TIME", "TIMETZ", "DATETIME", "DATETIME2", "SMALLDATETIME", "DATETIMEOFFSET", "TIMESTAMP", "TIMESTAMPTZ":
+		return "time.Time"
+	case "UUID", "UNIQUEIDENTIFIER":
+		return "[16]byte"
+	default:
+		return "any"
+	}
 }
 
 func needsQuoting(identifier string) bool {

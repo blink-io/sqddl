@@ -64,12 +64,14 @@ func (s *ViewStructs) ReadCatalog(catalog *Catalog) error {
 				if i < len(view.ColumnTypes) {
 					columnType = view.ColumnTypes[i]
 				}
+				col := &Column{
+					ColumnType: columnType,
+					IsEnum:     isEnum[column],
+				}
 				structField := StructField{
-					Name: strings.ToUpper(strings.ReplaceAll(column, " ", "_")),
-					Type: getFieldType(catalog.Dialect, &Column{
-						ColumnType: columnType,
-						IsEnum:     isEnum[column],
-					}),
+					Name:   strings.ToUpper(strings.ReplaceAll(column, " ", "_")),
+					Type:   getFieldType(catalog.Dialect, col),
+					GoType: getFieldGoType(catalog.Dialect, col),
 				}
 				viewStruct.Fields = append(viewStruct.Fields, structField)
 			}

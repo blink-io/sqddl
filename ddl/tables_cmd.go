@@ -148,8 +148,8 @@ func (cmd *TablesCmd) Run() error {
 		return err
 	}
 	if cmd.SchemaQualifiedStructs {
-		for i := range tableStructs {
-			tableStruct := &tableStructs[i]
+		for i := range tableStructs.Tables {
+			tableStruct := &tableStructs.Tables[i]
 			tableName := strings.ToLower(tableStruct.Name)
 			if tableStruct.Fields[0].NameTag != "" {
 				tableName = tableStruct.Fields[0].NameTag

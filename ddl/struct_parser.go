@@ -126,7 +126,7 @@ func (p *StructParser) VisitStruct(node ast.Node) {
 		}
 		tableStruct.Fields = append(tableStruct.Fields, structField)
 	}
-	p.TableStructs = append(p.TableStructs, tableStruct)
+	p.TableStructs.Tables = append(p.TableStructs.Tables, tableStruct)
 }
 
 // ParseFile parses an fs.File containing Go source code and populates the
@@ -151,7 +151,7 @@ func (p *StructParser) WriteCatalog(catalog *Catalog) error {
 	p.columnExplicitType = make(map[[3]string]struct{})
 	p.cache = NewCatalogCache(catalog)
 
-	for _, tableStruct := range p.TableStructs {
+	for _, tableStruct := range p.TableStructs.Tables {
 		if len(tableStruct.Fields) == 0 {
 			continue
 		}
