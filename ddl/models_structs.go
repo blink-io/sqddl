@@ -3,9 +3,10 @@ package ddl
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"go/token"
 	"regexp"
-	"strconv"
+	"slices"
 	"strings"
 
 	"github.com/huandu/xstrings"
@@ -20,6 +21,8 @@ type ModelStructs struct {
 	Models []ModelStruct
 
 	HasTimeType bool
+
+	HasNullField bool
 }
 
 // ModelStruct represents a model struct.
@@ -29,6 +32,9 @@ type ModelStruct struct {
 
 	// Fields are the model struct fields.
 	Fields []StructField
+
+	// PKFields are the table struct fields for primary keys.
+	PKFields []StructField
 }
 
 // ModelField represents a model field within a model struct.
@@ -93,12 +99,14 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 			foreignkeyModifiers := make(map[string]*Modifier)
 			indexModifiers := make(map[string]*Modifier)
 			addedModifier := make(map[*Modifier]bool)
+			var primaryKeyColumns []string
 			for _, constraint := range table.Constraints {
 				if constraint.Ignore {
 					continue
 				}
 				columnNames := strings.Join(constraint.Columns, ",")
 				m := &Modifier{Value: columnNames}
+				primaryKeyColumns = append(primaryKeyColumns, constraint.Columns...)
 				switch constraint.ConstraintType {
 				case PRIMARY_KEY:
 					m.Name = "primarykey"
@@ -280,6 +288,10 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				// notnull
 				if column.IsNotNull {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "notnull"})
+				} else {
+					if !s.HasNullField {
+						s.HasNullField = true
+					}
 				}
 				// primarykey
 				if primarykeyModifier != nil && primarykeyModifier.Value == column.ColumnName {
@@ -351,6 +363,15 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "generated"})
 				}
 				modelStruct.Fields = append(modelStruct.Fields, structField)
+
+				// Add fields for primary keys
+				if slices.Contains(primaryKeyColumns, column.ColumnName) {
+					modelStruct.PKFields = append(modelStruct.PKFields, structField)
+
+					if s.HasTimeType == false && structField.GoType == "time.Time" {
+						s.HasTimeType = true
+					}
+				}
 			}
 			if primarykeyModifier != nil && !addedModifier[primarykeyModifier] {
 				addedModifier[primarykeyModifier] = true
@@ -387,9 +408,15 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 	buf := bufpool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufpool.Put(buf)
+	buf.WriteString("import \"context\"\n")
 	if s.HasTimeType {
 		buf.WriteString("import \"time\"\n\n")
 	}
+	if s.HasNullField {
+		buf.WriteString("import \"github.com/blink-io/opt/omitnull\"\n")
+	}
+	buf.WriteString("import \"github.com/blink-io/opt/omit\"\n\n")
+
 	for _, modelStruct := range s.Models {
 		hasColumn := false
 		for i := len(modelStruct.Fields) - 1; i >= 0; i-- {
@@ -404,25 +431,101 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		if buf.Len() > 0 {
 			buf.WriteString("\n")
 		}
-		buf.WriteString("type " + normalizeStructName(modelStruct.Name) + " struct {")
+		// --- generate model begin ---
+		buf.WriteString("type " + normalizePublicName(modelStruct.Name) + " struct {")
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
-			buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " " + structField.GoType)
-			if structField.NameTag == "" {
+			buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " " + structField.GoType)
+			//if structField.NameTag == "" {
+			//	continue
+			//}
+			tagVal := "-"
+			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
+				return v.Name != structField.Name
+			}) {
+				tagVal = xstrings.ToSnakeCase(structField.Name)
+			}
+			buf.WriteString("`db:" + tagVal + "`")
+		}
+		buf.WriteString("\n}\n\n")
+		// --- generate model end ---
+
+		// --- generate model setter begin ---
+		buf.WriteString("type " + normalizePublicName(modelStruct.Name) + "Setter struct {")
+		for _, structField := range modelStruct.Fields {
+			if structField.Name == "_" {
 				continue
 			}
-			buf.WriteString(" `")
-			written := false
-			if structField.NameTag != "" {
-				if written {
-					buf.WriteString(" ")
-				}
-				written = true
-				buf.WriteString(defaultModelTag + `:` + strconv.Quote(structField.NameTag))
+			if hasNotNullModifier(structField.Modifiers) {
+				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " omit.Val[" + structField.GoType + "]")
+			} else {
+				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " omitnull.Val[" + structField.GoType + "]")
 			}
-			buf.WriteString("`")
+			//if structField.NameTag == "" {
+			//	continue
+			//}
+			tagVal := "-"
+			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
+				return v.Name != structField.Name
+			}) {
+				tagVal = xstrings.ToSnakeCase(structField.Name)
+			}
+			buf.WriteString("`db:" + tagVal + "`")
+		}
+		buf.WriteString("\n}\n\n")
+		// --- generate model setter end ---
+
+		// Generate column mapper
+		//func (t TAGS) ColumnSetter(ctx context.Context, c *sq.Column, s TagSetter) {
+		//	s.ID.IfSet(func(v int64) {
+		//		c.SetInt64(t.ID, v)
+		//	})
+		//	s.SID.IfSet(func(v sting) {
+		//		c.SetString(t.SID, v)
+		//	})
+		//}
+		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, s %s) {",
+			modelStruct.Name,
+			normalizePublicName(modelStruct.Name)+"Setter"),
+		)
+		for _, structField := range modelStruct.Fields {
+			if structField.Name == "_" {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("\n\ts.%s.IfSet(func(v %s) {",
+				structField.Name,
+				structField.GoType,
+			))
+			buf.WriteString(fmt.Sprintf("\n\t\ts.%s.%s(t.%s, v)",
+				normalizePublicName(structField.Name),
+				getColumnSetMethod(structField.GoType),
+				structField.Name))
+			buf.WriteString("\n\t})")
+		}
+		buf.WriteString("\n}\n\n")
+
+		// Generate row mapper
+		//func (t TAGS) RowSetter(r *sq.Row) Tag {
+		//	v := Tag{}
+		//	v.ID = r.Int64Field(t.ID)
+		//	v.GUID = r.StringField(t.GUID)
+		//	return v
+		//}
+		buf.WriteString(fmt.Sprintf("func (t %s) RowMapper(ctx context.Context, r *sq.Row) %s {",
+			modelStruct.Name,
+			normalizePublicName(modelStruct.Name)),
+		)
+		buf.WriteString("\n\tv :=" + normalizePublicName(modelStruct.Name) + "{}")
+		for _, structField := range modelStruct.Fields {
+			if structField.Name == "_" {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
+				normalizePublicName(structField.Name),
+				getRowFieldMethod(structField.GoType, hasNotNullModifier(structField.Modifiers)),
+				structField.Name))
 		}
 		buf.WriteString("\n}\n")
 	}
@@ -431,20 +534,94 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 	return b, nil
 }
 
-func normalizeStructName(name string) string {
-	return xstrings.ToPascalCase(name)
+func hasNotNullModifier(modifiers Modifiers) bool {
+	for _, modifier := range modifiers {
+		if modifier.Name == "notnull" {
+			return true
+		}
+	}
+	return false
 }
 
-func normalizeFieldName(name string) string {
+func getColumnSetMethod(goType string) string {
+	switch goType {
+	case "int64":
+		return "SetInt64"
+	case "int", "int8", "int16", "int32", "uint", "uint8", "uint16", "uint32":
+		return "SetInt"
+	case "string":
+		return "SetString"
+	case "float32", "float64":
+		return "SetFloat64"
+	case "bool":
+		return "SetBool"
+	case "time.Time":
+		return "SetTime"
+	case "[]byte":
+		return "SetBytes"
+	default:
+		return "Set"
+	}
+}
+func getRowFieldMethod(goType string, notnull bool) string {
+	switch goType {
+	case "bool":
+		if notnull {
+			return "BoolField"
+		} else {
+			return "NullBoolField"
+		}
+	case "[]byte":
+		return "BytesField"
+	case "int":
+		return "IntField"
+	case "int64":
+		if notnull {
+			return "Int64Field"
+		} else {
+			return "NullInt64Field"
+		}
+	case "float32", "float64":
+		if notnull {
+			return "Float64Field "
+		} else {
+			return "NullFloat64Field"
+		}
+	case "time.Time":
+		if notnull {
+			return "TimeField"
+		} else {
+			return "NullTimeField"
+		}
+	case "string":
+		if notnull {
+			return "StringField"
+		} else {
+			return "NullStringField"
+		}
+	default:
+		return "ScanField"
+	}
+}
+
+func normalizePropName(name string, trans func(string) string) string {
 	rr, err := regexp.Compile("_([A-Z])*ID$")
 	if err == nil {
 		if rr.MatchString(name) {
 			if i := strings.LastIndex(name, "_"); i > 0 {
 				s1 := name[:i]
 				s2 := name[i+1:]
-				return xstrings.ToCamelCase(s1) + s2
+				return trans(s1) + s2
 			}
 		}
 	}
-	return xstrings.ToCamelCase(name)
+	return trans(name)
+}
+
+func normalizePublicName(name string) string {
+	return normalizePropName(name, xstrings.ToPascalCase)
+}
+
+func normalizeFieldName(name string) string {
+	return normalizePropName(name, xstrings.ToCamelCase)
 }

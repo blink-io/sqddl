@@ -467,7 +467,7 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			}
 			buf.WriteString("`")
 		}
-		buf.WriteString("\n}\n")
+		buf.WriteString("\n}\n\n")
 
 		if len(tableStruct.PKFields) > 0 {
 			// PrimaryKeys() example:

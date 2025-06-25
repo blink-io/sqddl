@@ -21,7 +21,7 @@ func TestModelsCmd(t *testing.T) {
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
-	defer db.Close()
+	defer closeQuietly(db.Close)
 
 	migrateCmd, err := MigrateCommand("-db", dsn, "-dir", "sqlite_migrations")
 	if err != nil {

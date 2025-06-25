@@ -123,7 +123,7 @@ func (cmd *TablesCmd) Run() error {
 		cmd.HistoryTable = "sqddl_history"
 	}
 	if cmd.db != "" {
-		defer cmd.DB.Close()
+		defer closeQuietly(cmd.DB.Close)
 	}
 
 	var tableStructs TableStructs
@@ -198,7 +198,7 @@ func (cmd *TablesCmd) Run() error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer closeQuietly(file.Close)
 		out = file
 	}
 	_, err = io.WriteString(out, "package "+cmd.PackageName+"\n\nimport \"github.com/blink-io/sq\"\n\n")
