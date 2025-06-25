@@ -39,7 +39,7 @@ func TestTablesCmd(t *testing.T) {
 	}
 	tablesCmd.Stdout = buf
 	tablesCmd.db = "" // Keep database open after running command.
-	defer tablesCmd.DB.Close()
+	defer closeQuietly(tablesCmd.DB.Close)
 	err = tablesCmd.Run()
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)

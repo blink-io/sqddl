@@ -190,3 +190,49 @@ type TASK struct {
 	DATA          sq.JSONField
 	_             struct{} `ddl:"foreignkey={employee_id,department_id references=employee_department index}"`
 }
+
+type tables struct {
+	Actor              ACTOR
+	Address            ADDRESS
+	Category           CATEGORY
+	City               CITY
+	Country            COUNTRY
+	Customer           CUSTOMER
+	Department         DEPARTMENT
+	Employee           EMPLOYEE
+	EmployeeDepartment EMPLOYEE_DEPARTMENT
+	Film               FILM
+	FilmActor          FILM_ACTOR
+	FilmCategory       FILM_CATEGORY
+	FilmText           FILM_TEXT
+	Inventory          INVENTORY
+	Language           LANGUAGE
+	Payment            PAYMENT
+	Rental             RENTAL
+	Staff              STAFF
+	Store              STORE
+	Task               TASK
+}
+
+var Tables = tables{
+	Actor:              sq.New[ACTOR](""),
+	Address:            sq.New[ADDRESS](""),
+	Category:           sq.New[CATEGORY](""),
+	City:               sq.New[CITY](""),
+	Country:            sq.New[COUNTRY](""),
+	Customer:           sq.New[CUSTOMER](""),
+	Department:         sq.New[DEPARTMENT](""),
+	Employee:           sq.New[EMPLOYEE](""),
+	EmployeeDepartment: sq.New[EMPLOYEE_DEPARTMENT](""),
+	Film:               sq.New[FILM](""),
+	FilmActor:          sq.New[FILM_ACTOR](""),
+	FilmCategory:       sq.New[FILM_CATEGORY](""),
+	FilmText:           sq.New[FILM_TEXT](""),
+	Inventory:          sq.New[INVENTORY](""),
+	Language:           sq.New[LANGUAGE](""),
+	Payment:            sq.New[PAYMENT](""),
+	Rental:             sq.New[RENTAL](""),
+	Staff:              sq.New[STAFF](""),
+	Store:              sq.New[STORE](""),
+	Task:               sq.New[TASK](""),
+}
