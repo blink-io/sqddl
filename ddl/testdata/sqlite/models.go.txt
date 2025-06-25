@@ -1,166 +1,168 @@
 package sakila
 
+import "time"
+
 type Actor struct {
-	ActorId          int64
-	FirstName        string
-	LastName         string
-	FullName         string
-	FullNameReversed string
-	LastUpdate       time.Time
+	actorID          int64
+	firstName        string
+	lastName         string
+	fullName         string
+	fullNameReversed string
+	lastUpdate       time.Time
 }
 
 type Address struct {
-	AddressId  int64
-	Address    string
-	Address2   string
-	District   string
-	CityId     int64
-	PostalCode string
-	Phone      string
-	LastUpdate time.Time
+	addressID  int64
+	address    string
+	address2   string
+	district   string
+	cityID     int64
+	postalCode string
+	phone      string
+	lastUpdate time.Time
 }
 
 type Category struct {
-	CategoryId int64
-	Name       string
-	LastUpdate time.Time
+	categoryID int64
+	name       string
+	lastUpdate time.Time
 }
 
 type City struct {
-	CityId     int64
-	City       string
-	CountryId  int64
-	LastUpdate time.Time
+	cityID     int64
+	city       string
+	countryID  int64
+	lastUpdate time.Time
 }
 
 type Country struct {
-	CountryId  int64
-	Country    string
-	LastUpdate time.Time
+	countryID  int64
+	country    string
+	lastUpdate time.Time
 }
 
 type Customer struct {
-	CustomerId int64
-	StoreId    int64
-	FirstName  string
-	LastName   string
-	Email      string
-	AddressId  int64
-	Active     int64
-	CreateDate time.Time
-	LastUpdate time.Time
+	customerID int64
+	storeID    int64
+	firstName  string
+	lastName   string
+	email      string
+	addressID  int64
+	active     int64
+	createDate time.Time
+	lastUpdate time.Time
 }
 
 type Department struct {
-	DepartmentId [16]byte
-	Name         string
+	departmentID [16]byte
+	name         string
 }
 
 type Employee struct {
-	EmployeeId [16]byte
-	Name       string
-	Title      string
-	ManagerId  [16]byte
+	employeeID [16]byte
+	name       string
+	title      string
+	managerID  [16]byte
 }
 
 type EmployeeDepartment struct {
-	EmployeeId   [16]byte
-	DepartmentId [16]byte
+	employeeID   [16]byte
+	departmentID [16]byte
 }
 
 type Film struct {
-	FilmId             int64
-	Title              string
-	Description        string
-	ReleaseYear        int64
-	LanguageId         int64
-	OriginalLanguageId int64
-	RentalDuration     int64
-	RentalRate         float64
-	Length             int64
-	ReplacementCost    float64
-	Rating             string
-	SpecialFeatures    map[string]any
-	LastUpdate         time.Time
+	filmID             int64
+	title              string
+	description        string
+	releaseYear        int64
+	languageID         int64
+	originalLanguageID int64
+	rentalDuration     int64
+	rentalRate         float64
+	length             int64
+	replacementCost    float64
+	rating             string
+	specialFeatures    map[string]any
+	lastUpdate         time.Time
 }
 
 type FilmActor struct {
-	ActorId    int64
-	FilmId     int64
-	LastUpdate time.Time
+	actorID    int64
+	filmID     int64
+	lastUpdate time.Time
 }
 
 type FilmCategory struct {
-	FilmId     int64
-	CategoryId int64
-	LastUpdate time.Time
+	filmID     int64
+	categoryID int64
+	lastUpdate time.Time
 }
 
 type FilmText struct {
-	Title       any
-	Description any
-	FilmText    any
-	Rank        any
+	title       any
+	description any
+	filmText    any
+	rank        any
 }
 
 type Inventory struct {
-	InventoryId int64
-	FilmId      int64
-	StoreId     int64
-	LastUpdate  time.Time
+	inventoryID int64
+	filmID      int64
+	storeID     int64
+	lastUpdate  time.Time
 }
 
 type Language struct {
-	LanguageId int64
-	Name       string
-	LastUpdate time.Time
+	languageID int64
+	name       string
+	lastUpdate time.Time
 }
 
 type Payment struct {
-	PaymentId   int64
-	CustomerId  int64
-	StaffId     int64
-	RentalId    int64
-	Amount      float64
-	PaymentDate time.Time
-	LastUpdate  time.Time
+	paymentID   int64
+	customerID  int64
+	staffID     int64
+	rentalID    int64
+	amount      float64
+	paymentDate time.Time
+	lastUpdate  time.Time
 }
 
 type Rental struct {
-	RentalId    int64
-	RentalDate  time.Time
-	InventoryId int64
-	CustomerId  int64
-	ReturnDate  time.Time
-	StaffId     int64
-	LastUpdate  time.Time
+	rentalID    int64
+	rentalDate  time.Time
+	inventoryID int64
+	customerID  int64
+	returnDate  time.Time
+	staffID     int64
+	lastUpdate  time.Time
 }
 
 type Staff struct {
-	StaffId    int64
-	FirstName  string
-	LastName   string
-	AddressId  int64
-	Picture    []byte
-	Email      string
-	StoreId    int64
-	Active     int64
-	Username   string
-	Password   string
-	LastUpdate time.Time
+	staffID    int64
+	firstName  string
+	lastName   string
+	addressID  int64
+	picture    []byte
+	email      string
+	storeID    int64
+	active     int64
+	username   string
+	password   string
+	lastUpdate time.Time
 }
 
 type Store struct {
-	StoreId        int64
-	ManagerStaffId int64
-	AddressId      int64
-	LastUpdate     time.Time
+	storeID        int64
+	managerStaffID int64
+	addressID      int64
+	lastUpdate     time.Time
 }
 
 type Task struct {
-	TaskId       [16]byte
-	EmployeeId   [16]byte
-	DepartmentId [16]byte
-	Task         string
-	Data         map[string]any
+	taskID       [16]byte
+	employeeID   [16]byte
+	departmentID [16]byte
+	task         string
+	data         map[string]any
 }

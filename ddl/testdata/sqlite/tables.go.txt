@@ -12,6 +12,14 @@ type ACTOR struct {
 	LAST_UPDATE        sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t ACTOR) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.ACTOR_ID}
+}
+
+func (t ACTOR) PrimaryKeyValues(actorID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{actorID}})
+}
+
 type ADDRESS struct {
 	sq.TableStruct
 	ADDRESS_ID  sq.NumberField `ddl:"primarykey"`
@@ -24,11 +32,27 @@ type ADDRESS struct {
 	LAST_UPDATE sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t ADDRESS) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.ADDRESS_ID}
+}
+
+func (t ADDRESS) PrimaryKeyValues(addressID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{addressID}})
+}
+
 type CATEGORY struct {
 	sq.TableStruct
 	CATEGORY_ID sq.NumberField `ddl:"primarykey"`
 	NAME        sq.StringField `ddl:"notnull"`
 	LAST_UPDATE sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
+}
+
+func (t CATEGORY) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.CATEGORY_ID}
+}
+
+func (t CATEGORY) PrimaryKeyValues(categoryID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{categoryID}})
 }
 
 type CITY struct {
@@ -39,11 +63,27 @@ type CITY struct {
 	LAST_UPDATE sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t CITY) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.CITY_ID}
+}
+
+func (t CITY) PrimaryKeyValues(cityID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{cityID}})
+}
+
 type COUNTRY struct {
 	sq.TableStruct
 	COUNTRY_ID  sq.NumberField `ddl:"primarykey"`
 	COUNTRY     sq.StringField `ddl:"notnull"`
 	LAST_UPDATE sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
+}
+
+func (t COUNTRY) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.COUNTRY_ID}
+}
+
+func (t COUNTRY) PrimaryKeyValues(countryID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{countryID}})
 }
 
 type CUSTOMER struct {
@@ -60,10 +100,26 @@ type CUSTOMER struct {
 	_           struct{}       `ddl:"unique=email,first_name,last_name"`
 }
 
+func (t CUSTOMER) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.CUSTOMER_ID}
+}
+
+func (t CUSTOMER) PrimaryKeyValues(customerID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{customerID}})
+}
+
 type DEPARTMENT struct {
 	sq.TableStruct
 	DEPARTMENT_ID sq.UUIDField   `ddl:"notnull primarykey"`
 	NAME          sq.StringField `ddl:"notnull"`
+}
+
+func (t DEPARTMENT) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.DEPARTMENT_ID}
+}
+
+func (t DEPARTMENT) PrimaryKeyValues(departmentID [16]byte) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{departmentID}})
 }
 
 type EMPLOYEE struct {
@@ -74,10 +130,26 @@ type EMPLOYEE struct {
 	MANAGER_ID  sq.UUIDField   `ddl:"references={employee.employee_id index}"`
 }
 
+func (t EMPLOYEE) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.EMPLOYEE_ID}
+}
+
+func (t EMPLOYEE) PrimaryKeyValues(employeeID [16]byte) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{employeeID}})
+}
+
 type EMPLOYEE_DEPARTMENT struct {
 	sq.TableStruct `ddl:"primarykey=employee_id,department_id"`
 	EMPLOYEE_ID    sq.UUIDField `ddl:"notnull references={employee index}"`
 	DEPARTMENT_ID  sq.UUIDField `ddl:"notnull references={department index}"`
+}
+
+func (t EMPLOYEE_DEPARTMENT) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.EMPLOYEE_ID, t.DEPARTMENT_ID}
+}
+
+func (t EMPLOYEE_DEPARTMENT) PrimaryKeyValues(employeeID [16]byte, departmentID [16]byte) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{employeeID, departmentID}})
 }
 
 type FILM struct {
@@ -97,6 +169,14 @@ type FILM struct {
 	LAST_UPDATE          sq.TimeField `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t FILM) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.FILM_ID}
+}
+
+func (t FILM) PrimaryKeyValues(filmID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{filmID}})
+}
+
 type FILM_ACTOR struct {
 	sq.TableStruct `ddl:"primarykey=actor_id,film_id"`
 	ACTOR_ID       sq.NumberField `ddl:"notnull references={actor onupdate=cascade ondelete=restrict}"`
@@ -104,11 +184,27 @@ type FILM_ACTOR struct {
 	LAST_UPDATE    sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t FILM_ACTOR) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.ACTOR_ID, t.FILM_ID}
+}
+
+func (t FILM_ACTOR) PrimaryKeyValues(actorID int64, filmID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{actorID, filmID}})
+}
+
 type FILM_CATEGORY struct {
 	sq.TableStruct `ddl:"primarykey=film_id,category_id"`
 	FILM_ID        sq.NumberField `ddl:"notnull references={film onupdate=cascade ondelete=restrict}"`
 	CATEGORY_ID    sq.NumberField `ddl:"notnull references={category onupdate=cascade ondelete=restrict}"`
 	LAST_UPDATE    sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
+}
+
+func (t FILM_CATEGORY) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.FILM_ID, t.CATEGORY_ID}
+}
+
+func (t FILM_CATEGORY) PrimaryKeyValues(filmID int64, categoryID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{filmID, categoryID}})
 }
 
 type FILM_TEXT struct {
@@ -128,11 +224,27 @@ type INVENTORY struct {
 	_            struct{}       `ddl:"index=store_id,film_id"`
 }
 
+func (t INVENTORY) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.INVENTORY_ID}
+}
+
+func (t INVENTORY) PrimaryKeyValues(inventoryID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{inventoryID}})
+}
+
 type LANGUAGE struct {
 	sq.TableStruct
 	LANGUAGE_ID sq.NumberField `ddl:"primarykey"`
 	NAME        sq.StringField `ddl:"notnull"`
 	LAST_UPDATE sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
+}
+
+func (t LANGUAGE) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.LANGUAGE_ID}
+}
+
+func (t LANGUAGE) PrimaryKeyValues(languageID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{languageID}})
 }
 
 type PAYMENT struct {
@@ -146,6 +258,14 @@ type PAYMENT struct {
 	LAST_UPDATE  sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t PAYMENT) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.PAYMENT_ID}
+}
+
+func (t PAYMENT) PrimaryKeyValues(paymentID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{paymentID}})
+}
+
 type RENTAL struct {
 	sq.TableStruct
 	RENTAL_ID    sq.NumberField `ddl:"primarykey"`
@@ -156,6 +276,14 @@ type RENTAL struct {
 	STAFF_ID     sq.NumberField `ddl:"notnull references={staff onupdate=cascade ondelete=restrict index}"`
 	LAST_UPDATE  sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
 	_            struct{}       `ddl:"index={inventory_id,customer_id,staff_id unique}"`
+}
+
+func (t RENTAL) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.RENTAL_ID}
+}
+
+func (t RENTAL) PrimaryKeyValues(rentalID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{rentalID}})
 }
 
 type STAFF struct {
@@ -173,12 +301,28 @@ type STAFF struct {
 	LAST_UPDATE sq.TimeField `ddl:"type=DATETIME notnull default=unixepoch()"`
 }
 
+func (t STAFF) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.STAFF_ID}
+}
+
+func (t STAFF) PrimaryKeyValues(staffID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{staffID}})
+}
+
 type STORE struct {
 	sq.TableStruct
 	STORE_ID         sq.NumberField `ddl:"primarykey"`
 	MANAGER_STAFF_ID sq.NumberField `ddl:"notnull references={staff.staff_id onupdate=cascade ondelete=restrict index}"`
 	ADDRESS_ID       sq.NumberField `ddl:"notnull references={address onupdate=cascade ondelete=restrict index}"`
 	LAST_UPDATE      sq.TimeField   `ddl:"type=DATETIME notnull default=unixepoch()"`
+}
+
+func (t STORE) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.STORE_ID}
+}
+
+func (t STORE) PrimaryKeyValues(storeID int64) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{storeID}})
 }
 
 type TASK struct {
@@ -189,6 +333,14 @@ type TASK struct {
 	TASK          sq.StringField `ddl:"notnull"`
 	DATA          sq.JSONField
 	_             struct{} `ddl:"foreignkey={employee_id,department_id references=employee_department index}"`
+}
+
+func (t TASK) PrimaryKeys() sq.RowValue {
+	return sq.RowValue{t.TASK_ID}
+}
+
+func (t TASK) PrimaryKeyValues(taskID [16]byte) sq.Predicate {
+	return t.PrimaryKeys().In(sq.RowValues{{taskID}})
 }
 
 type tables struct {
