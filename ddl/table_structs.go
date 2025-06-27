@@ -373,16 +373,16 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 				if column.IsGenerated || column.GeneratedExpr != "" {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "generated"})
 				}
-				tableStruct.Fields = append(tableStruct.Fields, structField)
-
 				// Add fields for primary keys
 				if slices.Contains(primaryKeyColumns, column.ColumnName) {
+					//
 					tableStruct.PKFields = append(tableStruct.PKFields, structField)
 
 					if s.HasTimeType == false && structField.GoType == "time.Time" {
 						s.HasTimeType = true
 					}
 				}
+				tableStruct.Fields = append(tableStruct.Fields, structField)
 			}
 
 			if primaryKeyModifier != nil && !addedModifier[primaryKeyModifier] {

@@ -12,10 +12,6 @@ import (
 	"github.com/huandu/xstrings"
 )
 
-const (
-	defaultModelTag = "db"
-)
-
 // ModelStructs is a slice of ModelStruct.
 type ModelStructs struct {
 	Models []ModelStruct
@@ -362,8 +358,6 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				if column.IsGenerated || column.GeneratedExpr != "" {
 					structField.Modifiers = append(structField.Modifiers, Modifier{Name: "generated"})
 				}
-				modelStruct.Fields = append(modelStruct.Fields, structField)
-
 				// Add fields for primary keys
 				if slices.Contains(primaryKeyColumns, column.ColumnName) {
 					modelStruct.PKFields = append(modelStruct.PKFields, structField)
@@ -372,6 +366,7 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 						s.HasTimeType = true
 					}
 				}
+				modelStruct.Fields = append(modelStruct.Fields, structField)
 			}
 			if primarykeyModifier != nil && !addedModifier[primarykeyModifier] {
 				addedModifier[primarykeyModifier] = true
@@ -410,12 +405,14 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 	defer bufpool.Put(buf)
 	buf.WriteString("import \"context\"\n")
 	if s.HasTimeType {
-		buf.WriteString("import \"time\"\n\n")
+		buf.WriteString("import \"time\"\n")
 	}
+	buf.WriteString("\n")
 	if s.HasNullField {
+		buf.WriteString("import \"github.com/blink-io/opt/null\"\n")
 		buf.WriteString("import \"github.com/blink-io/opt/omitnull\"\n")
 	}
-	buf.WriteString("import \"github.com/blink-io/opt/omit\"\n\n")
+	buf.WriteString("import \"github.com/blink-io/opt/omit\"\n\n\n")
 
 	for _, modelStruct := range s.Models {
 		hasColumn := false
@@ -437,17 +434,19 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			if structField.Name == "_" {
 				continue
 			}
-			buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " " + structField.GoType)
-			//if structField.NameTag == "" {
-			//	continue
-			//}
+			if hasNotNullModifier(structField.Modifiers) {
+				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " " + structField.GoType)
+			} else {
+				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " null.Val[" + structField.GoType + "]")
+			}
+
 			tagVal := "-"
 			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
 				return v.Name != structField.Name
 			}) {
 				tagVal = xstrings.ToSnakeCase(structField.Name)
 			}
-			buf.WriteString("`db:" + tagVal + "`")
+			buf.WriteString("`db:\"" + tagVal + "\"`")
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model end ---
@@ -472,7 +471,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			}) {
 				tagVal = xstrings.ToSnakeCase(structField.Name)
 			}
-			buf.WriteString("`db:" + tagVal + "`")
+			buf.WriteString("`db:\"" + tagVal + "\"`")
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model setter end ---
@@ -495,11 +494,10 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				continue
 			}
 			buf.WriteString(fmt.Sprintf("\n\ts.%s.IfSet(func(v %s) {",
-				structField.Name,
+				normalizePublicName(structField.Name),
 				structField.GoType,
 			))
-			buf.WriteString(fmt.Sprintf("\n\t\ts.%s.%s(t.%s, v)",
-				normalizePublicName(structField.Name),
+			buf.WriteString(fmt.Sprintf("\n\t\tc.%s(t.%s, v)",
 				getColumnSetMethod(structField.GoType),
 				structField.Name))
 			buf.WriteString("\n\t})")
@@ -522,11 +520,60 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			if structField.Name == "_" {
 				continue
 			}
-			buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
-				normalizePublicName(structField.Name),
-				getRowFieldMethod(structField.GoType, hasNotNullModifier(structField.Modifiers)),
-				structField.Name))
+			notNull := hasNotNullModifier(structField.Modifiers)
+			resultFieldName := normalizePublicName(structField.Name)
+			rowFieldMethod := getRowFieldMethod(structField.GoType)
+			varFieldName := normalizeFieldName(structField.Name)
+			varPropName := normalizePropName(structField.Name, xstrings.ToCamelCase)
+			if notNull {
+				// v.CardID = r.Int64Field(t.CAR_ID)
+				buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
+					resultFieldName,
+					rowFieldMethod,
+					structField.Name,
+				))
+			} else {
+
+				switch rowFieldMethod {
+
+				case "BytesField":
+					// Example1: BytesField has no NullBytesField
+					// cardInfo := r.BytesField(t.CAR_INFO)
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.Val[[]byte]{}", resultFieldName))
+				case "IntField",
+					"Int8Field",
+					"Int16Field",
+					"Int32Field",
+					"Int64Field",
+					"UintField",
+					"Uint8Field",
+					"Uint16Field",
+					"Uint32Field",
+					"Uint64Field",
+					"Float32Field",
+					"Float64Field",
+					"BoolField",
+					"StringField",
+					"TimeField":
+					// Example2
+					// carID := r.NullInt32Field(t.CAR_ID)
+					// v.CardID = null.FromCond(cardId.V, cardID.Valid)
+					newRowFieldMethod := "Null" + rowFieldMethod
+					buf.WriteString(fmt.Sprintf("\n\t%s := r.%s(t.%s)",
+						varFieldName,
+						newRowFieldMethod,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromCond(%s.V, %s.Valid)",
+						varPropName,
+						varFieldName,
+						varFieldName,
+					))
+				default:
+				}
+			}
 		}
+		buf.WriteString("\n\treturn v")
 		buf.WriteString("\n}\n")
 	}
 	b := make([]byte, buf.Len())
@@ -545,13 +592,31 @@ func hasNotNullModifier(modifiers Modifiers) bool {
 
 func getColumnSetMethod(goType string) string {
 	switch goType {
+	case "int":
+		return "SetInt"
+	case "int8":
+		return "SetInt8"
+	case "int16":
+		return "SetInt16"
+	case "int32":
+		return "SetInt32"
 	case "int64":
 		return "SetInt64"
-	case "int", "int8", "int16", "int32", "uint", "uint8", "uint16", "uint32":
-		return "SetInt"
+	case "uint":
+		return "SetUint"
+	case "uint8":
+		return "SetUint8"
+	case "uint16":
+		return "SetUint16"
+	case "uint32":
+		return "SetUint32"
+	case "uint64":
+		return "SetUint64"
 	case "string":
 		return "SetString"
-	case "float32", "float64":
+	case "float32":
+		return "SetFloat32"
+	case "float64":
 		return "SetFloat64"
 	case "bool":
 		return "SetBool"
@@ -560,47 +625,46 @@ func getColumnSetMethod(goType string) string {
 	case "[]byte":
 		return "SetBytes"
 	default:
-		return "Set"
+		return "SetAny"
 	}
 }
-func getRowFieldMethod(goType string, notnull bool) string {
+
+func getRowFieldMethod(goType string) string {
 	switch goType {
-	case "bool":
-		if notnull {
-			return "BoolField"
-		} else {
-			return "NullBoolField"
-		}
-	case "[]byte":
-		return "BytesField"
 	case "int":
 		return "IntField"
+	case "int8":
+		return "Int8Field"
+	case "int16":
+		return "Int16Field"
+	case "int32":
+		return "Int32Field"
 	case "int64":
-		if notnull {
-			return "Int64Field"
-		} else {
-			return "NullInt64Field"
-		}
-	case "float32", "float64":
-		if notnull {
-			return "Float64Field "
-		} else {
-			return "NullFloat64Field"
-		}
-	case "time.Time":
-		if notnull {
-			return "TimeField"
-		} else {
-			return "NullTimeField"
-		}
+		return "Int64Field"
+	case "uint":
+		return "UintField"
+	case "uint8":
+		return "Uint8Field"
+	case "uint16":
+		return "Uint16Field"
+	case "uint32":
+		return "Uint32Field"
+	case "uint64":
+		return "Uint64Field"
 	case "string":
-		if notnull {
-			return "StringField"
-		} else {
-			return "NullStringField"
-		}
+		return "StringField"
+	case "float32":
+		return "Float32Field"
+	case "float64":
+		return "Float64Field"
+	case "bool":
+		return "BoolField"
+	case "time.Time":
+		return "TimeField"
+	case "[]byte":
+		return "BytesField"
 	default:
-		return "ScanField"
+		return "Scan"
 	}
 }
 

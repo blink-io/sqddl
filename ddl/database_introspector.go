@@ -249,6 +249,7 @@ func (dbi *DatabaseIntrospector) WriteCatalog(catalog *Catalog) error {
 				switch constraint.ConstraintType {
 				case PRIMARY_KEY:
 					column.IsPrimaryKey = true
+					column.IsNotNull = true // the primary key must be not null.
 				case UNIQUE:
 					column.IsUnique = true
 				case FOREIGN_KEY:
@@ -293,7 +294,7 @@ func (dbi *DatabaseIntrospector) GetVersion() (version string, err error) {
 	default:
 		return "", fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	if rows.Next() {
 		err = rows.Scan(&version)
 		if err != nil {
@@ -356,7 +357,7 @@ func (dbi *DatabaseIntrospector) GetDatabaseName() (databaseName string, err err
 	default:
 		return "", fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	if rows.Next() {
 		err = rows.Scan(&databaseName)
 		if err != nil {
@@ -391,7 +392,7 @@ func (dbi *DatabaseIntrospector) GetCurrentSchema() (currentSchema string, err e
 	default:
 		return "", fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	if rows.Next() {
 		err = rows.Scan(&currentSchema)
 		if err != nil {
@@ -426,7 +427,7 @@ func (dbi *DatabaseIntrospector) GetDefaultCollation() (defaultCollation string,
 	default:
 		return "", fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	for rows.Next() {
 		err = rows.Scan(&defaultCollation)
 		if err != nil {
@@ -470,7 +471,7 @@ func (dbi *DatabaseIntrospector) GetColumns() ([]Column, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var columns []Column
 	for rows.Next() {
 		var column Column
@@ -684,7 +685,7 @@ func (dbi *DatabaseIntrospector) GetConstraints() ([]Constraint, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var constraints []Constraint
 	for rows.Next() {
 		var constraint Constraint
@@ -845,7 +846,7 @@ func (dbi *DatabaseIntrospector) GetDomains() ([]Domain, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	for rows.Next() {
 		var domain Domain
 		var b1, b2 []byte
@@ -907,7 +908,7 @@ func (dbi *DatabaseIntrospector) GetEnums() ([]Enum, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	for rows.Next() {
 		var enum Enum
 		var b []byte
@@ -939,7 +940,7 @@ func (dbi *DatabaseIntrospector) GetExtensions() (extensions []string, err error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	for rows.Next() {
 		var extname, extversion string
 		err = rows.Scan(&extname, &extversion)
@@ -993,7 +994,7 @@ func (dbi *DatabaseIntrospector) GetIndexes() ([]Index, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var indexes []Index
 	for rows.Next() {
 		var index Index
@@ -1162,10 +1163,7 @@ func (dbi *DatabaseIntrospector) GetRoutines() ([]Routine, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var routines []Routine
 	for rows.Next() {
 		var routine Routine
@@ -1271,7 +1269,7 @@ func (dbi *DatabaseIntrospector) GetTables() ([]Table, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var tables []Table
 	for rows.Next() {
 		var table Table
@@ -1331,7 +1329,7 @@ func (dbi *DatabaseIntrospector) GetTriggers() ([]Trigger, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var triggers []Trigger
 	for rows.Next() {
 		var trigger Trigger
@@ -1425,10 +1423,7 @@ func (dbi *DatabaseIntrospector) GetViews() ([]View, error) {
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dbi.Dialect)
 	}
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	defer closeQuietly(rows.Close)
 	var views []View
 	for rows.Next() {
 		var view View
