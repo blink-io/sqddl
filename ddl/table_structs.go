@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/huandu/xstrings"
 	"go/token"
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/huandu/xstrings"
 )
 
 const (
@@ -424,6 +423,43 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 	if s.HasTimeType {
 		buf.WriteString("import \"time\"\n\n")
 	}
+
+	//type tables struct {
+	//	UserDevices USER_DEVICES
+	//}
+	//
+	//var Tables = tables{
+	//	UserDevices: sq.New[USER_DEVICES](""),
+	//}
+	buf.WriteString("type tables struct {")
+	for _, tableStruct := range s.Tables {
+		buf.WriteString(fmt.Sprintf("\n\t%s %s",
+			xstrings.ToPascalCase(tableStruct.Name),
+			tableStruct.Name),
+		)
+	}
+	buf.WriteString("\n}\n")
+
+	buf.WriteString("var Tables = tables {")
+	for _, tableStruct := range s.Tables {
+		buf.WriteString(fmt.Sprintf("\n\t%s: sq.New[%s](\"\"),",
+			xstrings.ToPascalCase(tableStruct.Name),
+			tableStruct.Name),
+		)
+	}
+	buf.WriteString("\n}\n\n")
+
+	// Enum
+	//type ENUM_FILM_RATING string
+	//
+	//func (e ENUM_FILM_RATING) Enumerate() []string {
+	//	//TODO Add more
+	//	return []string{}
+	//}
+	//for _, tableStruct := range s.Tables {
+	//
+	//}
+
 	for _, tableStruct := range s.Tables {
 		hasColumn := false
 		for i := len(tableStruct.Fields) - 1; i >= 0; i-- {
@@ -512,31 +548,6 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 		}
 	}
 
-	//type tables struct {
-	//	UserDevices USER_DEVICES
-	//}
-	//
-	//var Tables = tables{
-	//	UserDevices: sq.New[USER_DEVICES](""),
-	//}
-	buf.WriteString("type tables struct {")
-	for _, tableStruct := range s.Tables {
-		buf.WriteString(fmt.Sprintf("\n\t%s %s",
-			xstrings.ToPascalCase(tableStruct.Name),
-			tableStruct.Name),
-		)
-	}
-	buf.WriteString("\n}\n")
-
-	buf.WriteString("var Tables = tables {")
-	for _, tableStruct := range s.Tables {
-		buf.WriteString(fmt.Sprintf("\n\t%s: sq.New[%s](\"\"),",
-			xstrings.ToPascalCase(tableStruct.Name),
-			tableStruct.Name),
-		)
-	}
-	buf.WriteString("\n}\n")
-
 	b := make([]byte, buf.Len())
 	copy(b, buf.Bytes())
 	return b, nil
@@ -577,7 +588,7 @@ func getFieldType(dialect string, column *Column) (fieldType string) {
 
 func getFieldGoType(dialect string, column *Column) (fieldType string) {
 	if column.IsEnum {
-		return "string" //FIXME Maybe will be a bug?
+		return "sq.Enumeration"
 	}
 	if strings.HasSuffix(column.ColumnType, "[]") {
 		return "[]any"

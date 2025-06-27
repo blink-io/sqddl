@@ -412,6 +412,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		buf.WriteString("import \"github.com/blink-io/opt/null\"\n")
 		buf.WriteString("import \"github.com/blink-io/opt/omitnull\"\n")
 	}
+	buf.WriteString("import \"github.com/blink-io/sq\"\n")
 	buf.WriteString("import \"github.com/blink-io/opt/omit\"\n\n\n")
 
 	for _, modelStruct := range s.Models {
@@ -484,6 +485,9 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		//	s.SID.IfSet(func(v sting) {
 		//		c.SetString(t.SID, v)
 		//	})
+		//  s.EmployeeID.IfSet(func(v [16]byte) {
+		//	  c.SetUUID(t.EMPLOYEE_ID, v)
+		//  })
 		//}
 		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, s %s) {",
 			modelStruct.Name,
@@ -524,18 +528,65 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			resultFieldName := normalizePublicName(structField.Name)
 			rowFieldMethod := getRowFieldMethod(structField.GoType)
 			varFieldName := normalizeFieldName(structField.Name)
-			varPropName := normalizePropName(structField.Name, xstrings.ToCamelCase)
+
 			if notNull {
-				// v.CardID = r.Int64Field(t.CAR_ID)
-				buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
-					resultFieldName,
-					rowFieldMethod,
-					structField.Name,
-				))
-			} else {
-
 				switch rowFieldMethod {
+				case "UUIDField":
+					// Example
+					// var uuid [16]byte
+					// r.UUIDField(&uuid, t.EMPLOYEE_ID)
+					// v.EmployeeID = uuid
+					buf.WriteString(fmt.Sprintf("\n\tvar %s [16]byte", varFieldName))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+						resultFieldName,
+						varFieldName,
+					))
 
+				case "JSONField":
+					//var data map[string]any
+					//r.JSONField(data, t.DATA)
+					//v.Data = null.FromPtr(data)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+						resultFieldName,
+						varFieldName,
+					))
+
+				case "ArrayField":
+					//var arrays []any
+					//r.ArrayField(arrays, t.DATA)
+					//v.Arrays = arrays
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+						resultFieldName,
+						varFieldName,
+					))
+
+				default:
+					// v.CardID = r.Int64Field(t.CAR_ID)
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
+						resultFieldName,
+						rowFieldMethod,
+						structField.Name,
+					))
+				}
+			} else {
+				switch rowFieldMethod {
 				case "BytesField":
 					// Example1: BytesField has no NullBytesField
 					// cardInfo := r.BytesField(t.CAR_INFO)
@@ -555,7 +606,6 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					"BoolField",
 					"StringField",
 					"TimeField":
-					// Example2
 					// carID := r.NullInt32Field(t.CAR_ID)
 					// v.CardID = null.FromCond(cardId.V, cardID.Valid)
 					newRowFieldMethod := "Null" + rowFieldMethod
@@ -565,10 +615,55 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromCond(%s.V, %s.Valid)",
-						varPropName,
+						resultFieldName,
 						varFieldName,
 						varFieldName,
 					))
+				case "UUIDField":
+					//var managerID = new([16]byte)
+					//r.UUIDField(managerID, t.MANAGER_ID)
+					//v.ManagerID = null.FromPtr(managerID)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new([16]byte)", varFieldName))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
+						resultFieldName,
+						varFieldName,
+					))
+
+				case "JSONField":
+					//data := new(map[string]any)
+					//r.JSONField(data, t.DATA)
+					//v.Data = null.FromPtr(data)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
+						resultFieldName,
+						varFieldName,
+					))
+
+				case "ArrayField":
+					//var arrays = new([]any)
+					//r.ArrayField(arrays, t.DATA)
+					//v.Arrays = null.FromPtr(arrays)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
+						resultFieldName,
+						varFieldName,
+					))
+
 				default:
 				}
 			}
@@ -624,6 +719,10 @@ func getColumnSetMethod(goType string) string {
 		return "SetTime"
 	case "[]byte":
 		return "SetBytes"
+	case "[16]byte":
+		return "SetUUID"
+	case "map[string]any":
+		return "SetJSON"
 	default:
 		return "SetAny"
 	}
@@ -663,6 +762,10 @@ func getRowFieldMethod(goType string) string {
 		return "TimeField"
 	case "[]byte":
 		return "BytesField"
+	case "[16]byte":
+		return "UUIDField"
+	case "map[string]any":
+		return "JSONField"
 	default:
 		return "Scan"
 	}
