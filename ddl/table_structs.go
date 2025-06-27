@@ -418,8 +418,13 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 // MarshalText converts the TableStructs into Go source code.
 func (s *TableStructs) MarshalText() (text []byte, err error) {
 	buf := bufpool.Get().(*bytes.Buffer)
+	enumBuf := bufpool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer bufpool.Put(buf)
+	enumBuf.Reset()
+	defer func() {
+		bufpool.Put(buf)
+		bufpool.Put(enumBuf)
+	}()
 	if s.HasTimeType {
 		buf.WriteString("import \"time\"\n\n")
 	}
@@ -455,9 +460,6 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 	//func (e ENUM_FILM_RATING) Enumerate() []string {
 	//	//TODO Add more
 	//	return []string{}
-	//}
-	//for _, tableStruct := range s.Tables {
-	//
 	//}
 
 	for _, tableStruct := range s.Tables {
@@ -502,6 +504,23 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 				buf.WriteString(`ddl:` + strconv.Quote(ddlTag))
 			}
 			buf.WriteString("`")
+
+			if structField.Type == "sq.EnumField" {
+				//Enum type naming rule: Enum{tableStruct.Name}{structField.Name}
+				//
+				//type ENUM_FILM_RATING string
+				//
+				//func (e ENUM_FILM_RATING) Enumerate() []string {
+				//	//TODO Add more
+				//	return []string{}
+				//}
+				enumTypeDefStmt := "type " + normalizeEnumName(tableStruct.Name, structField.Name) + " string"
+				enumBuf.WriteString(enumTypeDefStmt)
+				enumBuf.WriteString(fmt.Sprintf("\nfunc (e %s) Enumerate() []string {", enumTypeDefStmt))
+				enumBuf.WriteString("\n\t//TODO Add more")
+				enumBuf.WriteString("\n\treturn []string{}")
+				enumBuf.WriteString("\n}\n\n")
+			}
 		}
 		buf.WriteString("\n}\n\n")
 
@@ -546,6 +565,9 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			buf.WriteString("}})")
 			buf.WriteString("\n}\n")
 		}
+
+		buf.WriteString("\n")
+		buf.WriteString(enumBuf.String())
 	}
 
 	b := make([]byte, buf.Len())

@@ -193,6 +193,10 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 					Type:   getFieldType(catalog.Dialect, &table.Columns[i]),
 					GoType: getFieldGoType(catalog.Dialect, &table.Columns[i]),
 				}
+				if structField.Type == "sq.EnumField" {
+					enumTypeName := normalizeEnumName(modelStruct.Name, structField.Name)
+					structField.Type = enumTypeName
+				}
 				if s.HasTimeType == false && structField.GoType == "time.Time" {
 					s.HasTimeType = true
 				}
@@ -577,6 +581,21 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						varFieldName,
 					))
 
+				case "EnumField":
+					//var enumVal EnumVal
+					//r.EnumField(&enumVal, t.ENUM_VAL)
+					//v.EnumVal = enumVal
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+						resultFieldName,
+						varFieldName,
+					))
+
 				default:
 					// v.CardID = r.Int64Field(t.CAR_ID)
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
@@ -653,6 +672,21 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var arrays = new([]any)
 					//r.ArrayField(arrays, t.DATA)
 					//v.Arrays = null.FromPtr(arrays)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
+						resultFieldName,
+						varFieldName,
+					))
+
+				case "EnumField":
+					//var enumVal = new(EnumVal)
+					//r.EnumField(enumVal, t.ENUM_VAL)
+					//v.EnumVal = null.FromPtr(enumVal)
 					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
@@ -767,7 +801,11 @@ func getRowFieldMethod(goType string) string {
 	case "map[string]any":
 		return "JSONField"
 	default:
-		return "Scan"
+		if strings.HasPrefix(goType, "Enum") {
+			return "EnumField"
+		} else {
+			return "Scan"
+		}
 	}
 }
 
@@ -791,4 +829,8 @@ func normalizePublicName(name string) string {
 
 func normalizeFieldName(name string) string {
 	return normalizePropName(name, xstrings.ToCamelCase)
+}
+
+func normalizeEnumName(modelName, fieldName string) string {
+	return "Enum" + normalizePublicName(modelName) + normalizePublicName(fieldName)
 }
