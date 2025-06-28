@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/blink-io/sq v0.0.0-20250627091915-7412c922894b
+	github.com/go-openapi/inflect v0.21.2
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/go-cmp v0.7.0
 	github.com/huandu/xstrings v1.5.0

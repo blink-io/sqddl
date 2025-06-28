@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/go-openapi/inflect"
 	"github.com/huandu/xstrings"
 )
 
@@ -102,11 +103,11 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				}
 				columnNames := strings.Join(constraint.Columns, ",")
 				m := &Modifier{Value: columnNames}
-				primaryKeyColumns = append(primaryKeyColumns, constraint.Columns...)
 				switch constraint.ConstraintType {
 				case PRIMARY_KEY:
 					m.Name = "primarykey"
 					primarykeyModifier = m
+					primaryKeyColumns = append(primaryKeyColumns, constraint.Columns...)
 				case UNIQUE:
 					m.Name = "unique"
 					uniqueModifiers[columnNames] = m
@@ -195,7 +196,7 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				}
 				if structField.Type == "sq.EnumField" {
 					enumTypeName := normalizeEnumName(modelStruct.Name, structField.Name)
-					structField.Type = enumTypeName
+					structField.GoType = enumTypeName
 				}
 				if s.HasTimeType == false && structField.GoType == "time.Time" {
 					s.HasTimeType = true
@@ -374,7 +375,7 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 			}
 			if primarykeyModifier != nil && !addedModifier[primarykeyModifier] {
 				addedModifier[primarykeyModifier] = true
-				modelStruct.Fields[0].Modifiers = Modifiers{*primarykeyModifier}
+				//modelStruct.Fields[0].Modifiers = Modifiers{*primarykeyModifier}
 			}
 			for _, constraintModifier := range constraintModifierList {
 				if addedModifier[constraintModifier] {
@@ -434,46 +435,46 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			buf.WriteString("\n")
 		}
 		// --- generate model begin ---
-		buf.WriteString("type " + normalizePublicName(modelStruct.Name) + " struct {")
+		buf.WriteString("type " + normalizeModelName(modelStruct.Name) + " struct {")
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
 			if hasNotNullModifier(structField.Modifiers) {
-				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " " + structField.GoType)
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " " + structField.GoType)
 			} else {
-				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " null.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " null.Val[" + structField.GoType + "]")
 			}
 
 			tagVal := "-"
 			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
 				return v.Name != structField.Name
 			}) {
-				tagVal = xstrings.ToSnakeCase(structField.Name)
+				tagVal = normalizeTagName(structField.Name)
 			}
-			buf.WriteString(fmt.Sprintf("`db:\"%s\" json:\"%s\"`", tagVal, tagVal))
+			buf.WriteString(fmt.Sprintf("` db:\"%s\" json:\"%s\"`", tagVal, tagVal))
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model end ---
 
 		// --- generate model setter begin ---
-		buf.WriteString("type " + normalizePublicName(modelStruct.Name) + "Setter struct {")
+		buf.WriteString("type " + normalizeModelName(modelStruct.Name) + "Setter struct {")
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
 			if hasNotNullModifier(structField.Modifiers) {
-				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " omit.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omit.Val[" + structField.GoType + "]")
 			} else {
-				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " omitnull.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omitnull.Val[" + structField.GoType + "]")
 			}
 			tagVal := "-"
 			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
 				return v.Name != structField.Name
 			}) {
-				tagVal = xstrings.ToSnakeCase(structField.Name)
+				tagVal = normalizeTagName(structField.Name)
 			}
-			buf.WriteString(fmt.Sprintf("`db:\"%s\" json:\"%s\"`", tagVal, tagVal))
+			buf.WriteString(fmt.Sprintf("` db:\"%s\" json:\"%s\"`", tagVal, tagVal))
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model setter end ---
@@ -492,14 +493,14 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		//}
 		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, s %s) {",
 			modelStruct.Name,
-			normalizePublicName(modelStruct.Name)+"Setter"),
+			normalizeModelName(modelStruct.Name)+"Setter"),
 		)
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
 			buf.WriteString(fmt.Sprintf("\n\ts.%s.IfSet(func(v %s) {",
-				normalizePublicName(structField.Name),
+				normalizeFieldName(structField.Name),
 				structField.GoType,
 			))
 			buf.WriteString(fmt.Sprintf("\n\t\tc.%s(t.%s, v)",
@@ -518,17 +519,17 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		//}
 		buf.WriteString(fmt.Sprintf("func (t %s) RowMapper(ctx context.Context, r *sq.Row) %s {",
 			modelStruct.Name,
-			normalizePublicName(modelStruct.Name)),
+			normalizeModelName(modelStruct.Name)),
 		)
-		buf.WriteString("\n\tv :=" + normalizePublicName(modelStruct.Name) + "{}")
+		buf.WriteString("\n\tv :=" + normalizeModelName(modelStruct.Name) + "{}")
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
 			notNull := hasNotNullModifier(structField.Modifiers)
-			resultFieldName := normalizePublicName(structField.Name)
+			modelFieldName := normalizeFieldName(structField.Name)
 			rowFieldMethod := getRowFieldMethod(structField.GoType)
-			varFieldName := normalizeFieldName(structField.Name)
+			varFieldName := normalizeVarName(structField.Name)
 
 			if notNull {
 				switch rowFieldMethod {
@@ -544,7 +545,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -559,7 +560,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -574,7 +575,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -589,7 +590,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -604,14 +605,14 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
 				default:
 					// v.CardID = r.Int64Field(t.CAR_ID)
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = r.%s(t.%s)",
-						resultFieldName,
+						modelFieldName,
 						rowFieldMethod,
 						structField.Name,
 					))
@@ -621,7 +622,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				case "BytesField":
 					// Example1: BytesField has no NullBytesField
 					// cardInfo := r.BytesField(t.CAR_INFO)
-					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.Val[[]byte]{}", resultFieldName))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.Val[[]byte]{}", modelFieldName))
 				case "IntField",
 					"Int8Field",
 					"Int16Field",
@@ -646,7 +647,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromCond(%s.V, %s.Valid)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 						varFieldName,
 					))
@@ -661,7 +662,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -676,7 +677,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -691,7 +692,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -706,7 +707,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -721,7 +722,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						structField.Name,
 					))
 					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
-						resultFieldName,
+						modelFieldName,
 						varFieldName,
 					))
 
@@ -780,14 +781,23 @@ func getColumnSetMethod(goType string) string {
 		return "SetTime"
 	case "[]byte":
 		return "SetBytes"
+	case "[]int", "[]int8", "[]int16", "[]int32", "[]int64",
+		"[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64",
+		"[]float32", "[]float64", "[]bool", "[]string",
+		"[]time.Time", "[][16]byte", "[]map[string]any", "[]any":
+		return "SetArray"
 	case "[16]byte":
 		return "SetUUID"
 	case "any":
-		return "SetAny"
+		return "Set"
 	case "map[string]any":
 		return "SetJSON"
 	default:
-		return "SetAny"
+		if strings.HasPrefix(goType, "Enum") {
+			return "SetEnum"
+		} else {
+			return "Set"
+		}
 	}
 }
 
@@ -829,6 +839,11 @@ func getRowFieldMethod(goType string) string {
 		return "UUIDField"
 	case "map[string]any":
 		return "JSONField"
+	case "[]int", "[]int8", "[]int16", "[]int32", "[]int64",
+		"[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64",
+		"[]float32", "[]float64", "[]bool", "[]string",
+		"[]time.Time", "[][16]byte", "[]map[string]any", "[]any":
+		return "ArrayField"
 	case "any":
 		return "ScanField"
 	default:
@@ -841,27 +856,37 @@ func getRowFieldMethod(goType string) string {
 }
 
 func normalizePropName(name string, trans func(string) string) string {
-	rr, err := regexp.Compile("_([A-Z])*ID$")
+	rr, err := regexp.Compile("(_)?([A-Z])*ID$")
 	if err == nil {
 		if rr.MatchString(name) {
 			if i := strings.LastIndex(name, "_"); i > 0 {
 				s1 := name[:i]
 				s2 := name[i+1:]
 				return trans(s1) + s2
+			} else {
+				return name
 			}
 		}
 	}
 	return trans(name)
 }
 
-func normalizePublicName(name string) string {
-	return normalizePropName(name, xstrings.ToPascalCase)
+func normalizeModelName(name string) string {
+	return inflect.Singularize(normalizePropName(name, xstrings.ToPascalCase))
 }
 
 func normalizeFieldName(name string) string {
+	return normalizePropName(name, xstrings.ToPascalCase)
+}
+
+func normalizeVarName(name string) string {
 	return normalizePropName(name, xstrings.ToCamelCase)
 }
 
 func normalizeEnumName(modelName, fieldName string) string {
-	return "Enum" + normalizePublicName(modelName) + normalizePublicName(fieldName)
+	return "Enum" + normalizeFieldName(modelName) + normalizeFieldName(fieldName)
+}
+
+func normalizeTagName(name string) string {
+	return xstrings.ToSnakeCase(name)
 }

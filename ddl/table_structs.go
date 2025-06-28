@@ -443,7 +443,7 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			tableStruct.Name),
 		)
 	}
-	buf.WriteString("\n}\n")
+	buf.WriteString("\n}\n\n")
 
 	buf.WriteString("var Tables = tables {")
 	for _, tableStruct := range s.Tables {
@@ -452,7 +452,7 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			tableStruct.Name),
 		)
 	}
-	buf.WriteString("\n}\n\n")
+	buf.WriteString("\n}\n")
 
 	// Enum
 	//type ENUM_FILM_RATING string
@@ -510,13 +510,19 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 				//
 				//type ENUM_FILM_RATING string
 				//
+				//const (
+				//	EnumEnumsStatusUnknown EnumEnumsStatus = "unknown"
+				//)
+				//
 				//func (e ENUM_FILM_RATING) Enumerate() []string {
 				//	//TODO Add more
 				//	return []string{}
 				//}
-				enumTypeDefStmt := "type " + normalizeEnumName(tableStruct.Name, structField.Name) + " string"
-				enumBuf.WriteString(enumTypeDefStmt)
-				enumBuf.WriteString(fmt.Sprintf("\nfunc (e %s) Enumerate() []string {", enumTypeDefStmt))
+				enumTypeName := normalizeEnumName(tableStruct.Name, structField.Name)
+				enumTypeDefStmt := "type " + enumTypeName + " string"
+				enumBuf.WriteString("\n" + enumTypeDefStmt)
+				enumBuf.WriteString(fmt.Sprintf("\n\nconst %sUnknown %s = \"unknown\"", enumTypeName, enumTypeName))
+				enumBuf.WriteString(fmt.Sprintf("\n\nfunc (e %s) Enumerate() []string {", enumTypeName))
 				enumBuf.WriteString("\n\t//TODO Add more")
 				enumBuf.WriteString("\n\treturn []string{}")
 				enumBuf.WriteString("\n}\n\n")
@@ -563,12 +569,16 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 				}
 			}
 			buf.WriteString("}})")
-			buf.WriteString("\n}\n")
+			buf.WriteString("\n}")
+
+			if enumBuf.Len() > 0 {
+				buf.WriteString(enumBuf.String())
+				enumBuf.Reset()
+			}
 		}
 
 		buf.WriteString("\n")
-		buf.WriteString(enumBuf.String())
-	}
+	} //foe end
 
 	b := make([]byte, buf.Len())
 	copy(b, buf.Bytes())
@@ -610,10 +620,14 @@ func getFieldType(dialect string, column *Column) (fieldType string) {
 
 func getFieldGoType(dialect string, column *Column) (fieldType string) {
 	if column.IsEnum {
-		return "sq.Enumeration"
+		return "Enum"
 	}
 	if strings.HasSuffix(column.ColumnType, "[]") {
-		return "[]any"
+		idx := strings.Index(column.ColumnType, "[")
+		colType := column.ColumnType[:idx]
+		var cc = new(Column)
+		cc.ColumnType = colType
+		return "[]" + getFieldGoType(dialect, cc)
 	}
 	normalizedType, arg1, _ := normalizeColumnType(dialect, column.ColumnType)
 	if normalizedType == "TINYINT" && arg1 == "1" {
