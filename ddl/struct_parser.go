@@ -972,7 +972,7 @@ var Analyzer = &analysis.Analyzer{
 			if i < len(positions) {
 				pos = positions[i]
 			}
-			pass.Reportf(pos, msg)
+			pass.Reportf(pos, "%s", msg)
 		}
 		return nil, nil
 	},

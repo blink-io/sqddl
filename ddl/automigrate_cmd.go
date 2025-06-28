@@ -238,7 +238,7 @@ func (cmd *AutomigrateCmd) Run() error {
 	}
 	if len(warnings) > 0 {
 		if !cmd.AcceptWarnings && !cmd.DryRun {
-			return fmt.Errorf("warnings present (to proceed despite the warnings, use the -accept-warnings flag):\n" + strings.Join(warnings, "\n"))
+			return fmt.Errorf("%s", "warnings present (to proceed despite the warnings, use the -accept-warnings flag):\n"+strings.Join(warnings, "\n"))
 		}
 		for _, warning := range warnings {
 			fmt.Fprintln(cmd.Stderr, warning)

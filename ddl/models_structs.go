@@ -451,7 +451,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			}) {
 				tagVal = xstrings.ToSnakeCase(structField.Name)
 			}
-			buf.WriteString("`db:\"" + tagVal + "\"`")
+			buf.WriteString(fmt.Sprintf("`db:\"%s\" json:\"%s\"`", tagVal, tagVal))
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model end ---
@@ -467,16 +467,13 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			} else {
 				buf.WriteString("\n\t" + normalizePublicName(structField.Name) + " omitnull.Val[" + structField.GoType + "]")
 			}
-			//if structField.NameTag == "" {
-			//	continue
-			//}
 			tagVal := "-"
 			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
 				return v.Name != structField.Name
 			}) {
 				tagVal = xstrings.ToSnakeCase(structField.Name)
 			}
-			buf.WriteString("`db:\"" + tagVal + "\"`")
+			buf.WriteString(fmt.Sprintf("`db:\"%s\" json:\"%s\"`", tagVal, tagVal))
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model setter end ---
@@ -513,7 +510,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		buf.WriteString("\n}\n\n")
 
 		// Generate row mapper
-		//func (t TAGS) RowSetter(r *sq.Row) Tag {
+		//func (t TAGS) RowMapper(r *sq.Row) Tag {
 		//	v := Tag{}
 		//	v.ID = r.Int64Field(t.ID)
 		//	v.GUID = r.StringField(t.GUID)
@@ -585,6 +582,21 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var enumVal EnumVal
 					//r.EnumField(&enumVal, t.ENUM_VAL)
 					//v.EnumVal = enumVal
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+						resultFieldName,
+						varFieldName,
+					))
+
+				case "ScanField":
+					//var xxType XXType
+					//r.ScanField(&enumVal, t.XX_TYPE)
+					//v.XXType = xxType
 					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
@@ -698,6 +710,21 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 						varFieldName,
 					))
 
+				case "ScanField":
+					//var xxType = new(XXType)
+					//r.ScanField(xxType, t.XX_TYPE)
+					//v.XXType = null.FromPtr(xxType)
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+						rowFieldMethod,
+						varFieldName,
+						structField.Name,
+					))
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = null.FromPtr(%s)",
+						resultFieldName,
+						varFieldName,
+					))
+
 				default:
 				}
 			}
@@ -755,6 +782,8 @@ func getColumnSetMethod(goType string) string {
 		return "SetBytes"
 	case "[16]byte":
 		return "SetUUID"
+	case "any":
+		return "SetAny"
 	case "map[string]any":
 		return "SetJSON"
 	default:
@@ -800,11 +829,13 @@ func getRowFieldMethod(goType string) string {
 		return "UUIDField"
 	case "map[string]any":
 		return "JSONField"
+	case "any":
+		return "ScanField"
 	default:
 		if strings.HasPrefix(goType, "Enum") {
 			return "EnumField"
 		} else {
-			return "Scan"
+			return "ScanField"
 		}
 	}
 }
