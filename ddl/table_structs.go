@@ -508,23 +508,27 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			if structField.Type == "sq.EnumField" {
 				//Enum type naming rule: Enum{tableStruct.Name}{structField.Name}
 				//
-				//type ENUM_FILM_RATING string
+				//type EnumEnumsStatus string
 				//
-				//const (
-				//	EnumEnumsStatusUnknown EnumEnumsStatus = "unknown"
-				//)
+				//const EnumEnumsStatusUnknown EnumEnumsStatus = "unknown"
 				//
-				//func (e ENUM_FILM_RATING) Enumerate() []string {
-				//	//TODO Add more
-				//	return []string{}
+				//var enumEnumsStatusValues = []string{
+				//	string(EnumEnumsStatusUnknown),
+				//}
+				//
+				//func (e EnumEnumsStatus) Enumerate() []string {
+				//	return enumEnumsStatusValues
 				//}
 				enumTypeName := normalizeEnumName(tableStruct.Name, structField.Name)
+				enumTypeNameValues := enumTypeName + "Values"
 				enumTypeDefStmt := "type " + enumTypeName + " string"
 				enumBuf.WriteString("\n" + enumTypeDefStmt)
 				enumBuf.WriteString(fmt.Sprintf("\n\nconst %sUnknown %s = \"unknown\"", enumTypeName, enumTypeName))
+				enumBuf.WriteString(fmt.Sprintf("\n\nvar %s = []string{", enumTypeNameValues))
+				enumBuf.WriteString(fmt.Sprintf("\nstring(%sUnknown),", enumTypeName))
+				enumBuf.WriteString(fmt.Sprintf("\n}\n\n"))
 				enumBuf.WriteString(fmt.Sprintf("\n\nfunc (e %s) Enumerate() []string {", enumTypeName))
-				enumBuf.WriteString("\n\t//TODO Add more")
-				enumBuf.WriteString("\n\treturn []string{}")
+				enumBuf.WriteString("\n\treturn " + enumTypeNameValues)
 				enumBuf.WriteString("\n}\n\n")
 			}
 		}

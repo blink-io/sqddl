@@ -480,34 +480,40 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		// --- generate model setter end ---
 
 		// Generate column mapper
-		//func (t TAGS) ColumnSetter(ctx context.Context, c *sq.Column, s TagSetter) {
-		//	s.ID.IfSet(func(v int64) {
-		//		c.SetInt64(t.ID, v)
-		//	})
-		//	s.SID.IfSet(func(v sting) {
-		//		c.SetString(t.SID, v)
-		//	})
-		//  s.EmployeeID.IfSet(func(v [16]byte) {
-		//	  c.SetUUID(t.EMPLOYEE_ID, v)
-		//  })
+		//func (t TAGS) ColumnSetter(ctx context.Context, c *sq.Column, ss ...TagSetter) {
+		// 	for idx, s := range ss {
+		//		_ = idx
+		//		s.ID.IfSet(func(v int64) {
+		//			c.SetInt64(t.ID, v)
+		//		})
+		//		s.SID.IfSet(func(v sting) {
+		//			c.SetString(t.SID, v)
+		//		})
+		//  	s.EmployeeID.IfSet(func(v [16]byte) {
+		//	  	c.SetUUID(t.EMPLOYEE_ID, v)
+		//  	})
+		//	}
 		//}
-		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, s %s) {",
+		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, ss ...%s) {",
 			modelStruct.Name,
 			normalizeModelName(modelStruct.Name)+"Setter"),
 		)
+		buf.WriteString("\n\t for idx, s := range ss {")
+		buf.WriteString("\n\t\t_ = idx")
 		for _, structField := range modelStruct.Fields {
 			if structField.Name == "_" {
 				continue
 			}
-			buf.WriteString(fmt.Sprintf("\n\ts.%s.IfSet(func(v %s) {",
+			buf.WriteString(fmt.Sprintf("\n\t\ts.%s.IfSet(func(v %s) {",
 				normalizeFieldName(structField.Name),
 				structField.GoType,
 			))
-			buf.WriteString(fmt.Sprintf("\n\t\tc.%s(t.%s, v)",
+			buf.WriteString(fmt.Sprintf("\n\t\t\tc.%s(t.%s, v)",
 				getColumnSetMethod(structField.GoType),
 				structField.Name))
-			buf.WriteString("\n\t})")
+			buf.WriteString("\n\t\t})")
 		}
+		buf.WriteString("\n\t}")
 		buf.WriteString("\n}\n\n")
 
 		// Generate row mapper
