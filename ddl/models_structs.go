@@ -494,7 +494,14 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		//  	})
 		//	}
 		//}
-		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ctx context.Context, c *sq.Column, ss ...%s) {",
+		//
+		//func (t TAGS) ColumnMapper(ss ...TagSetter) sq.ColumnMapper {
+		//	return func(ctx context.Context, c *sq.Column) {
+		//		t.ColumnSetter(ctx, c, ss...)
+		//	}
+		//}
+
+		buf.WriteString(fmt.Sprintf("func (t %s) ColumnSetter(ctx context.Context, c *sq.Column, ss ...%s) {",
 			modelStruct.Name,
 			normalizeModelName(modelStruct.Name)+"Setter"),
 		)
@@ -516,6 +523,14 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		buf.WriteString("\n\t}")
 		buf.WriteString("\n}\n\n")
 
+		buf.WriteString(fmt.Sprintf("func (t %s) ColumnMapper(ss ...%s) sq.ColumnMapper {",
+			modelStruct.Name,
+			normalizeModelName(modelStruct.Name)+"Setter"))
+		buf.WriteString("\n\treturn func(ctx context.Context, c *sq.Column) {")
+		buf.WriteString("\n\t\tt.ColumnSetter(ctx, c, ss...)")
+		buf.WriteString("\n\t}")
+		buf.WriteString("\n}\n\n")
+
 		// Generate row mapper
 		//func (t TAGS) RowMapper(r *sq.Row) Tag {
 		//	v := Tag{}
@@ -523,6 +538,17 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 		//	v.GUID = r.StringField(t.GUID)
 		//	return v
 		//}
+		//
+		//func (t TAGS) RowMapperFunc() sq.RowMapper[Tag] {
+		//	return t.RowMapper
+		//}
+		buf.WriteString(fmt.Sprintf("func (t %s) RowMapperFunc() sq.RowMapper[%s] {",
+			modelStruct.Name,
+			normalizeModelName(modelStruct.Name)),
+		)
+		buf.WriteString("\n\t return t.RowMapper")
+		buf.WriteString("\n}\n\n")
+
 		buf.WriteString(fmt.Sprintf("func (t %s) RowMapper(ctx context.Context, r *sq.Row) %s {",
 			modelStruct.Name,
 			normalizeModelName(modelStruct.Name)),
