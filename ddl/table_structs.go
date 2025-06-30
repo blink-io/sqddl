@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/huandu/xstrings"
 	"go/token"
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/huandu/xstrings"
 )
 
 const (
@@ -633,9 +632,10 @@ func getFieldGoType(dialect string, column *Column) (fieldType string) {
 		var cc = new(Column)
 		cc.ColumnType = columnType
 		fieldGoType := getFieldGoType(dialect, cc)
-		if "[16]byte" == fieldGoType || "map[string]any" == fieldGoType {
+		switch fieldGoType {
+		case "[16]byte", "map[string]any", "time.Time":
 			return "[]string"
-		} else {
+		default:
 			return "[]" + fieldGoType
 		}
 	}

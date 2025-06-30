@@ -586,7 +586,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//r.JSONField(data, t.DATA)
 					//v.Data = null.FromPtr(data)
 					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
 						structField.Name,
@@ -601,7 +601,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//r.ArrayField(arrays, t.DATA)
 					//v.Arrays = arrays
 					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
 						structField.Name,
@@ -616,7 +616,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//r.EnumField(&enumVal, t.ENUM_VAL)
 					//v.EnumVal = enumVal
 					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
 						structField.Name,
@@ -631,7 +631,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//r.ScanField(&enumVal, t.XX_TYPE)
 					//v.XXType = xxType
 					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
 						structField.Name,
