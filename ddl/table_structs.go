@@ -44,8 +44,11 @@ type StructField struct {
 	// Type is the type of the struct field.
 	Type string
 
-	// GoType is the Go type of the struct field.
-	GoType string
+	// NewGoType is the Go type of the struct field.
+	NewGoType string
+
+	//
+	RawGoType string
 
 	// NameTag is the value for the "sq" struct tag.
 	NameTag string
@@ -209,10 +212,12 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 				if column.Ignore {
 					continue
 				}
+				fieldGoType := getFieldGoType(catalog.Dialect, &table.Columns[i])
 				structField := StructField{
-					Name:   strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
-					Type:   getFieldType(catalog.Dialect, &table.Columns[i]),
-					GoType: getFieldGoType(catalog.Dialect, &table.Columns[i]),
+					Name:      strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
+					Type:      getFieldType(catalog.Dialect, &table.Columns[i]),
+					NewGoType: fieldGoType.NewGoType,
+					RawGoType: fieldGoType.RawGoType,
 				}
 				if needsQuoting(column.ColumnName) {
 					structField.NameTag = column.ColumnName
@@ -377,7 +382,7 @@ func (s *TableStructs) ReadCatalog(catalog *Catalog) error {
 					//
 					tableStruct.PKFields = append(tableStruct.PKFields, structField)
 
-					if s.HasTimeType == false && structField.GoType == "time.Time" {
+					if s.HasTimeType == false && structField.NewGoType == "time.Time" {
 						s.HasTimeType = true
 					}
 				}
@@ -558,9 +563,9 @@ func (s *TableStructs) MarshalText() (text []byte, err error) {
 			buf.WriteString(`func (t ` + tableStruct.Name + `) PrimaryKeyValues(`)
 			for idx, pkField := range tableStruct.PKFields {
 				if idx > 0 {
-					buf.WriteString(", " + normalizeFieldName(pkField.Name) + " " + pkField.GoType)
+					buf.WriteString(", " + normalizeFieldName(pkField.Name) + " " + pkField.NewGoType)
 				} else {
-					buf.WriteString(normalizeFieldName(pkField.Name) + " " + pkField.GoType)
+					buf.WriteString(normalizeFieldName(pkField.Name) + " " + pkField.NewGoType)
 				}
 			}
 			buf.WriteString(`) sq.Predicate {`)
@@ -622,9 +627,23 @@ func getFieldType(dialect string, column *Column) (fieldType string) {
 	return "sq.AnyField"
 }
 
-func getFieldGoType(dialect string, column *Column) (fieldType string) {
+type FieldGoType struct {
+	Dialect   string
+	RawGoType string
+	NewGoType string
+}
+
+func newFieldGoType(dialect, newGoType, rawGoType string) FieldGoType {
+	return FieldGoType{
+		Dialect:   dialect,
+		NewGoType: newGoType,
+		RawGoType: rawGoType,
+	}
+}
+
+func getFieldGoType(dialect string, column *Column) FieldGoType {
 	if column.IsEnum {
-		return "Enum"
+		return newFieldGoType(dialect, "Enum", "")
 	}
 	if strings.HasSuffix(column.ColumnType, "[]") {
 		idx := strings.Index(column.ColumnType, "[")
@@ -632,53 +651,54 @@ func getFieldGoType(dialect string, column *Column) (fieldType string) {
 		var cc = new(Column)
 		cc.ColumnType = columnType
 		fieldGoType := getFieldGoType(dialect, cc)
-		switch fieldGoType {
+		newGoType := fieldGoType.NewGoType
+		switch newGoType {
 		case "[16]byte", "map[string]any", "time.Time":
-			return "[]string"
+			return newFieldGoType(dialect, "[]string", "[]"+newGoType)
 		default:
-			return "[]" + fieldGoType
+			return newFieldGoType(dialect, "[]"+newGoType, "")
 		}
 	}
 	normalizedType, arg1, _ := normalizeColumnType(dialect, column.ColumnType)
 	if normalizedType == "TINYINT" && arg1 == "1" {
-		return "bool"
+		return newFieldGoType(dialect, "bool", "")
 	}
 	if normalizedType == "BINARY" && arg1 == "16" {
-		return "[16]byte"
+		return newFieldGoType(dialect, "[16]byte", "")
 	}
 	switch normalizedType {
 	case "BYTEA", "BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB", "VARBIT":
-		return "[]byte"
+		return newFieldGoType(dialect, "[]byte", "")
 	case "BOOLEAN", "BIT":
-		return "bool"
+		return newFieldGoType(dialect, "bool", "")
 	case "JSON", "JSONB":
-		return "map[string]any"
+		return newFieldGoType(dialect, "map[string]any", "")
 	case "TINYINT":
-		return "int8"
+		return newFieldGoType(dialect, "int8", "")
 	case "SMALLINT":
-		return "int16"
+		return newFieldGoType(dialect, "int16", "")
 	case "MEDIUMINT": // 24 bytes in MySQL
-		return "int32"
+		return newFieldGoType(dialect, "int32", "")
 	case "INT", "INTEGER":
 		if DialectSQLite == dialect {
-			return "int64"
+			return newFieldGoType(dialect, "int64", "")
 		} else {
-			return "int32"
+			return newFieldGoType(dialect, "int32", "")
 		}
 	case "BIGINT":
-		return "int64"
+		return newFieldGoType(dialect, "int64", "")
 	case "NUMERIC", "FLOAT":
-		return "float32"
+		return newFieldGoType(dialect, "float32", "")
 	case "REAL", "DOUBLE PRECISION":
-		return "float64"
+		return newFieldGoType(dialect, "float64", "")
 	case "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "VARCHAR", "NVARCHAR":
-		return "string"
+		return newFieldGoType(dialect, "string", "")
 	case "DATE", "TIME", "TIMETZ", "DATETIME", "DATETIME2", "SMALLDATETIME", "DATETIMEOFFSET", "TIMESTAMP", "TIMESTAMPTZ":
-		return "time.Time"
+		return newFieldGoType(dialect, "time.Time", "")
 	case "UUID", "UNIQUEIDENTIFIER":
-		return "[16]byte"
+		return newFieldGoType(dialect, "[16]byte", "")
 	default:
-		return "any"
+		return newFieldGoType(dialect, "any", "")
 	}
 }
 

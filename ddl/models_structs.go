@@ -189,16 +189,18 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				if column.Ignore {
 					continue
 				}
+				fieldGoType := getFieldGoType(catalog.Dialect, &table.Columns[i])
 				structField := StructField{
-					Name:   strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
-					Type:   getFieldType(catalog.Dialect, &table.Columns[i]),
-					GoType: getFieldGoType(catalog.Dialect, &table.Columns[i]),
+					Name:      strings.ToUpper(strings.ReplaceAll(column.ColumnName, " ", "_")),
+					Type:      getFieldType(catalog.Dialect, &table.Columns[i]),
+					NewGoType: fieldGoType.NewGoType,
+					RawGoType: fieldGoType.RawGoType,
 				}
 				if structField.Type == "sq.EnumField" {
 					enumTypeName := normalizeEnumName(modelStruct.Name, structField.Name)
-					structField.GoType = enumTypeName
+					structField.NewGoType = enumTypeName
 				}
-				if s.HasTimeType == false && structField.GoType == "time.Time" {
+				if s.HasTimeType == false && structField.NewGoType == "time.Time" {
 					s.HasTimeType = true
 				}
 				if needsQuoting(column.ColumnName) {
@@ -367,7 +369,7 @@ func (s *ModelStructs) ReadCatalog(catalog *Catalog) error {
 				if slices.Contains(primaryKeyColumns, column.ColumnName) {
 					modelStruct.PKFields = append(modelStruct.PKFields, structField)
 
-					if s.HasTimeType == false && structField.GoType == "time.Time" {
+					if s.HasTimeType == false && structField.NewGoType == "time.Time" {
 						s.HasTimeType = true
 					}
 				}
@@ -441,9 +443,10 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				continue
 			}
 			if hasNotNullModifier(structField.Modifiers) {
-				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " " + structField.GoType)
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " " + structField.NewGoType)
+
 			} else {
-				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " null.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " null.Val[" + structField.NewGoType + "]")
 			}
 
 			tagVal := "-"
@@ -453,6 +456,11 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				tagVal = normalizeTagName(structField.Name)
 			}
 			buf.WriteString(fmt.Sprintf("` db:\"%s\" json:\"%s\"`", tagVal, tagVal))
+
+			// Write raw go type as comment.
+			if len(structField.RawGoType) > 0 {
+				buf.WriteString(" // " + structField.RawGoType)
+			}
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model end ---
@@ -464,9 +472,9 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				continue
 			}
 			if hasNotNullModifier(structField.Modifiers) {
-				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omit.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omit.Val[" + structField.NewGoType + "]")
 			} else {
-				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omitnull.Val[" + structField.GoType + "]")
+				buf.WriteString("\n\t" + normalizeFieldName(structField.Name) + " omitnull.Val[" + structField.NewGoType + "]")
 			}
 			tagVal := "-"
 			if slices.ContainsFunc(modelStruct.PKFields, func(v StructField) bool {
@@ -475,6 +483,11 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				tagVal = normalizeTagName(structField.Name)
 			}
 			buf.WriteString(fmt.Sprintf("` db:\"%s\" json:\"%s\"`", tagVal, tagVal))
+
+			// Write raw go type as comment.
+			if len(structField.RawGoType) > 0 {
+				buf.WriteString(" // " + structField.RawGoType)
+			}
 		}
 		buf.WriteString("\n}\n\n")
 		// --- generate model setter end ---
@@ -513,10 +526,10 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			}
 			buf.WriteString(fmt.Sprintf("\n\t\ts.%s.IfSet(func(v %s) {",
 				normalizeFieldName(structField.Name),
-				structField.GoType,
+				structField.NewGoType,
 			))
 			buf.WriteString(fmt.Sprintf("\n\t\t\tc.%s(t.%s, v)",
-				getColumnSetMethod(structField.GoType),
+				getColumnSetMethod(structField.NewGoType),
 				structField.Name))
 			buf.WriteString("\n\t\t})")
 		}
@@ -560,7 +573,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 			}
 			notNull := hasNotNullModifier(structField.Modifiers)
 			modelFieldName := normalizeFieldName(structField.Name)
-			rowFieldMethod := getRowFieldMethod(structField.GoType)
+			rowFieldMethod := getRowFieldMethod(structField.NewGoType)
 			varFieldName := normalizeVarName(structField.Name)
 
 			if notNull {
@@ -585,7 +598,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var data map[string]any
 					//r.JSONField(data, t.DATA)
 					//v.Data = null.FromPtr(data)
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -600,7 +613,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var arrays []any
 					//r.ArrayField(arrays, t.DATA)
 					//v.Arrays = arrays
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -615,7 +628,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var enumVal EnumVal
 					//r.EnumField(&enumVal, t.ENUM_VAL)
 					//v.EnumVal = enumVal
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -630,7 +643,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var xxType XXType
 					//r.ScanField(&enumVal, t.XX_TYPE)
 					//v.XXType = xxType
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -702,7 +715,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//data := new(map[string]any)
 					//r.JSONField(data, t.DATA)
 					//v.Data = null.FromPtr(data)
-					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -717,7 +730,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var arrays = new([]any)
 					//r.ArrayField(arrays, t.DATA)
 					//v.Arrays = null.FromPtr(arrays)
-					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -732,7 +745,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var enumVal = new(EnumVal)
 					//r.EnumField(enumVal, t.ENUM_VAL)
 					//v.EnumVal = null.FromPtr(enumVal)
-					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
@@ -747,7 +760,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var xxType = new(XXType)
 					//r.ScanField(xxType, t.XX_TYPE)
 					//v.XXType = null.FromPtr(xxType)
-					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.GoType))
+					buf.WriteString(fmt.Sprintf("\n\tvar %s = new(%s)", varFieldName, structField.NewGoType))
 					buf.WriteString(fmt.Sprintf("\n\tr.%s(%s, t.%s)",
 						rowFieldMethod,
 						varFieldName,
