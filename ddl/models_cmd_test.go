@@ -30,7 +30,7 @@ func TestModelsCmd(t *testing.T) {
 		t.Fatal(testutil.Callers(), err)
 	}
 	migrateCmd.Stderr = io.Discard
-	migrateCmd.db = "" // Keep database open after running command.
+	migrateCmd.db = "" // Keep the database open after running command.
 	defer closeQuietly(migrateCmd.DB.Close)
 	err = migrateCmd.Run()
 	if err != nil {
@@ -38,7 +38,7 @@ func TestModelsCmd(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "sakila")
+	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "orm")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
@@ -62,7 +62,8 @@ func TestModelsCmd(t *testing.T) {
 
 func TestModelsCmd_Postgres(t *testing.T) {
 	t.Parallel()
-	dsn := "postgres://test:test@192.168.50.88:5432/test?sslmode=disable"
+	dsn := "postgres://test:test@localhost:15432/test?sslmode=disable"
+	//dsn := "postgres://test:test@192.168.50.88:5432/test?sslmode=disable"
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
@@ -82,7 +83,7 @@ func TestModelsCmd_Postgres(t *testing.T) {
 	//}
 
 	buf := &bytes.Buffer{}
-	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "sakila")
+	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "orm")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}

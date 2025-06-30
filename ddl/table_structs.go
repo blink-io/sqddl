@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"github.com/huandu/xstrings"
 	"go/token"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/huandu/xstrings"
 )
 
 const (
@@ -628,10 +629,15 @@ func getFieldGoType(dialect string, column *Column) (fieldType string) {
 	}
 	if strings.HasSuffix(column.ColumnType, "[]") {
 		idx := strings.Index(column.ColumnType, "[")
-		colType := column.ColumnType[:idx]
+		columnType := column.ColumnType[:idx]
 		var cc = new(Column)
-		cc.ColumnType = colType
-		return "[]" + getFieldGoType(dialect, cc)
+		cc.ColumnType = columnType
+		fieldGoType := getFieldGoType(dialect, cc)
+		if "[16]byte" == fieldGoType || "map[string]any" == fieldGoType {
+			return "[]string"
+		} else {
+			return "[]" + fieldGoType
+		}
 	}
 	normalizedType, arg1, _ := normalizeColumnType(dialect, column.ColumnType)
 	if normalizedType == "TINYINT" && arg1 == "1" {

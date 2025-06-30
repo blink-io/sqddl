@@ -59,7 +59,8 @@ func TestTablesCmd(t *testing.T) {
 
 func TestTablesCmd_Postgres(t *testing.T) {
 	t.Parallel()
-	dsn := "postgres://test:test@192.168.50.88:5432/test?sslmode=disable"
+	dsn := "postgres://test:test@localhost:15432/test?sslmode=disable"
+	//dsn := "postgres://test:test@192.168.50.88:5432/test?sslmode=disable"
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
@@ -79,7 +80,7 @@ func TestTablesCmd_Postgres(t *testing.T) {
 	//}
 
 	buf := &bytes.Buffer{}
-	tablesCmd, err := TablesCommand("-db", dsn, "-pkg", "sakila")
+	tablesCmd, err := TablesCommand("-db", dsn, "-pkg", "orm")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
