@@ -83,7 +83,7 @@ func TestModelsCmd_Postgres(t *testing.T) {
 	//}
 
 	buf := &bytes.Buffer{}
-	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "orm")
+	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "orm", "-schemas", "public")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
@@ -108,7 +108,6 @@ func TestModelsCmd_Postgres(t *testing.T) {
 func TestRegex_1(t *testing.T) {
 	rr, err := regexp.Compile("(_)?([A-Z])*ID$")
 	require.NoError(t, err)
-
 	strs := []string{
 		"X_ID",
 		"X_SSID",
