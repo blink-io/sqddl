@@ -80,7 +80,7 @@ func TestTablesCmd_Postgres(t *testing.T) {
 	//}
 
 	buf := &bytes.Buffer{}
-	tablesCmd, err := TablesCommand("-db", dsn, "-pkg", "orm")
+	tablesCmd, err := TablesCommand("-db", dsn, "-pkg", "sqtest", "-tables", "tbl_basic")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}

@@ -83,7 +83,7 @@ func TestModelsCmd_Postgres(t *testing.T) {
 	//}
 
 	buf := &bytes.Buffer{}
-	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "orm", "-schemas", "public")
+	modelsCmd, err := ModelsCommand("-db", dsn, "-pkg", "sqtest", "-schemas", "public", "-tables", "tbl_basic")
 	if err != nil {
 		t.Fatal(testutil.Callers(), err)
 	}
