@@ -729,20 +729,15 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var xxValue sql.Null[XXType]
 					//r.ScanField(&xxValue, t.XX_TYPE)
 					//v.XXValue = xxValue
-					nullRowFieldMethod := "Null" + rowFieldMethod
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
-					buf.WriteString(fmt.Sprintf("\n\tvar %s bool", varFieldName+"Valid"))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, &%s, t.%s)",
-						nullRowFieldMethod,
+					buf.WriteString(fmt.Sprintf("\n\tvar %s sql.Null[%s]", varFieldName, structField.NewGoType))
+					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
+						rowFieldMethod,
 						varFieldName,
-						varFieldName+"Valid",
 						structField.Name,
 					))
-					buf.WriteString(fmt.Sprintf("\n\tv.%s = sql.Null[%s]{V: %s, Valid: %s}",
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
 						modelFieldName,
-						structField.NewGoType,
 						varFieldName,
-						varFieldName+"Valid",
 					))
 				default:
 
