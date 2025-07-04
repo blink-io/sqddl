@@ -592,15 +592,22 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var arrays []string
 					//r.ArrayField(arrays, t.DATA)
 					//v.Arrays = arrays
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
-						rowFieldMethod,
-						varFieldName,
-						structField.Name,
-					))
-					buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+					//buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
+					//buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, t.%s)",
+					//	rowFieldMethod,
+					//	varFieldName,
+					//	structField.Name,
+					//))
+					//buf.WriteString(fmt.Sprintf("\n\tv.%s = %s",
+					//	modelFieldName,
+					//	varFieldName,
+					//))
+
+					//v.Arrays = sq.ArrayFieldFrom[[]string](r, t.ARRAYS)
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = sq.ArrayFieldFrom[%s](r, t.%s)",
 						modelFieldName,
-						varFieldName,
+						structField.NewGoType,
+						structField.Name,
 					))
 
 				case "EnumField":
@@ -643,16 +650,6 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				}
 			} else {
 				switch rowFieldMethod {
-				case "BytesField":
-					// var bytes = r.BytesField(t.CAR_INFO)
-					// v.Bytes = sql.Null[[]byte]{V: bytes, Valid: len(bytes) != 0}
-					buf.WriteString(fmt.Sprintf("\n\tvar %s = r.BytesField(t.%s)", varFieldName, structField.Name))
-					buf.WriteString(fmt.Sprintf("\n\tv.%s = sql.Null[%s]{V: %s, Valid: len(%s) != 0}",
-						modelFieldName,
-						structField.NewGoType,
-						varFieldName,
-						varFieldName,
-					))
 				case "IntField",
 					"Int8Field",
 					"Int16Field",
@@ -669,6 +666,7 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					"StringField",
 					"UUIDField",
 					"JSONField",
+					"BytesField",
 					"TimeField":
 					// v.CardID = r.NullInt32Field(t.CAR_ID)
 					nullFieldMethod := "Null" + rowFieldMethod
@@ -683,20 +681,27 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 					//var arraysValid bool
 					//r.NullArrayField(&arrays, &arraysValid, t.DATA)
 					//v.Arrays = sql.Null[[]string]{V: arrays, Valid: arraysValid}
-					nullRowFieldMethod := "Null" + rowFieldMethod
-					buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
-					buf.WriteString(fmt.Sprintf("\n\tvar %s bool", varFieldName+"Valid"))
-					buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, &%s, t.%s)",
-						nullRowFieldMethod,
-						varFieldName,
-						varFieldName+"Valid",
-						structField.Name,
-					))
-					buf.WriteString(fmt.Sprintf("\n\tv.%s = sql.Null[%s]{V: %s, Valid: %s}",
+					//nullRowFieldMethod := "Null" + rowFieldMethod
+					//buf.WriteString(fmt.Sprintf("\n\tvar %s %s", varFieldName, structField.NewGoType))
+					//buf.WriteString(fmt.Sprintf("\n\tvar %s bool", varFieldName+"Valid"))
+					//buf.WriteString(fmt.Sprintf("\n\tr.%s(&%s, &%s, t.%s)",
+					//	nullRowFieldMethod,
+					//	varFieldName,
+					//	varFieldName+"Valid",
+					//	structField.Name,
+					//))
+					//buf.WriteString(fmt.Sprintf("\n\tv.%s = sql.Null[%s]{V: %s, Valid: %s}",
+					//	modelFieldName,
+					//	structField.NewGoType,
+					//	varFieldName,
+					//	varFieldName+"Valid",
+					//))
+
+					//v.Arrays = sq.NullArrayFieldFrom[[]string](r, t.ARRAYS)
+					buf.WriteString(fmt.Sprintf("\n\tv.%s = sq.NullArrayFieldFrom[%s](r, t.%s)",
 						modelFieldName,
 						structField.NewGoType,
-						varFieldName,
-						varFieldName+"Valid",
+						structField.Name,
 					))
 
 				case "EnumField":
@@ -742,7 +747,6 @@ func (s *ModelStructs) MarshalText() (text []byte, err error) {
 				default:
 
 				}
-				buf.WriteString("\n")
 			}
 		}
 		buf.WriteString("\n\treturn v")
